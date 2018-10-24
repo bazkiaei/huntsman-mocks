@@ -16,14 +16,14 @@ conf = ConfigParser()
 conf.read(['setup.cfg'])
 metadata = dict(conf.items('metadata'))
 
-AUTHOR = metadata.get('author', '')
-AUTHOR_EMAIL = metadata.get('author_email', '')
+AUTHOR = metadata.get('author', 'Lee Spitler')
+AUTHOR_EMAIL = metadata.get('author_email', 'google_for_it')
 DESCRIPTION = metadata.get('description', '')
-KEYWORDS = metadata.get('keywords', 'Huntsman Telephoto Array')
+KEYWORDS = metadata.get('keywords', '')
 LICENSE = metadata.get('license', 'unknown')
 LONG_DESCRIPTION = metadata.get('long_description', '')
-PACKAGENAME = metadata.get('package_name', 'packagename')
-URL = metadata.get('url', 'http://projectpanoptes.org')
+PACKAGENAME = metadata.get('package_name', 'mocks')
+URL = metadata.get('url', 'https://www.facebook.com/AstroHuntsman/')
 
 # Treat everything in scripts except README.rst as a script to be installed
 # scripts = [fname for fname in glob.glob(os.path.join('scripts', '*'))
@@ -48,7 +48,6 @@ setup(name=PACKAGENAME,
           'License :: OSI Approved :: MIT License',
           'Operating System :: POSIX',
           'Programming Language :: C',
-          'Programming Language :: Python :: 3',
           'Programming Language :: Python :: 3.3',
           'Programming Language :: Python :: 3.4',
           'Programming Language :: Python :: 3.5',
