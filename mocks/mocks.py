@@ -64,6 +64,20 @@ def create_mock_galaxy_noiseless_image(galaxy_sim_data_raw,
     return mock_image_array
 
 
+def mock_image_stack(galaxy,
+                     imager,
+                     n_exposures=100,
+                     exptime=500 * u.s):
+
+    coadd = imager.make_image_real(galaxy, exptime).data
+
+    for i in range(n_exposures):
+        coadd = coadd + imager.make_image_real(galaxy, exptime).data
+    coadd = coadd / n_exposures
+
+    return coadd
+
+
 def compute_pixel_scale(distance=10.,
                         sim_pc_pixel=170):
     """
