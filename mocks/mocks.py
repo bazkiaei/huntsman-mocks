@@ -3,6 +3,7 @@ import numpy as np
 import astropy.units as u
 from astropy.cosmology import WMAP9 as cosmo
 from astropy.coordinates import Distance
+from astropy.convolution import convolve
 
 import gunagala as gg
 
@@ -64,6 +65,69 @@ def create_mock_galaxy_noiseless_image(galaxy_sim_data_raw,
     return mock_image_array
 
 
+def convolve_image_psf(input_data,
+                       psf_data,
+                       image_arcsec_pixel,
+                       oversampling=10,
+                       convolution_boundary="None"):
+    """
+    Convolves an image with input PSF.
+
+    Parameters
+    ----------
+    input_data : numpy.ndarray
+        Raw data of simulation that is going to be processed.
+    psf_data : numpy.ndarray
+        Imager's psf which should be provided by user.
+    image_arcsec_pixel : astropy.units.quantity.Quantity
+        Input image resolution (arcsec/pixel).
+    convolution_boundary="None" : bool, optional
+        Determines if user need to use extended boundary for convolution.
+
+    Returns
+    -------
+    numpy.ndarray
+        Convolved data of the simulated object.
+    This function convert an image to a convolved image with input PSF that is
+    provided by user. It uses the PSF to produce psf data which is the input to
+    astropy.convolve as its kernel. The shape of the kernel should be odd and
+    convolve_image_psf makes its shape odd if it is not.
+    """
+
+    # Making sure pixel scale has the right unit.
+    image_arcsec_pixel = gg.utils.ensure_unit(image_arcsec_pixel,
+                                              u.arcsec / u.pixel)
+    # Defining centre for the galaxy_psf.
+    psf_shape = psf_data.shape
+    psf_centre = (int(psf_shape[0] / 2), int(psf_shape[1] / 2))
+
+    # Producing psf data to be used as a cernel for `convolve()`.
+    image_psf = gg.psf.PixellatedPSF(psf_data,
+                                     psf_sampling=image_arcsec_pixel,
+                                     oversampling=oversampling,
+                                     psf_centre=psf_centre)
+
+    kernel = image_psf._psf_data
+    shape = kernel.shape
+    col_len = shape[0]
+
+    # Making the kernel's shape odd numbers if they are not already.
+    if shape[0] / 2 == int(shape[0] / 2):
+        add_row = np.zeros((1, shape[0]))
+        add_row[0, :] = kernel[shape[0] - 1, :]
+        kernel = np.append(kernel, add_row, axis=0)
+        col_len += 1
+
+    if shape[1] / 2 == int(shape[1] / 2):
+        add_col = np.zeros((col_len, 1))
+        add_col[:, 0] = kernel[:, shape[1] - 1]
+        kernel = np.append(kernel, add_col, axis=1)
+
+    convolved = convolve(input_data, kernel, boundary=convolution_boundary)
+
+    return convolved
+
+
 def compute_pixel_scale(distance=10.,
                         sim_pc_pixel=170):
     """
@@ -87,6 +151,6 @@ def compute_pixel_scale(distance=10.,
     d = Distance(distance * u.Mpc)
     z = d.compute_z(cosmo)
     angular_pc = cosmo.kpc_proper_per_arcmin(z).to(u.parsec / u.arcsec)
-    sim_arcsec_pixel = sim_pc_pixel / angular_pc
+    image_arcsec_pixel = sim_pc_pixel / angular_pc
 
-    return sim_arcsec_pixel
+    return image_arcsec_pixel
