@@ -14,7 +14,8 @@ def create_mock_galaxy_noiseless_image(galaxy_sim_data_raw,
                                        galaxy_coordinates,
                                        observation_time='2018-04-12T08:00',
                                        imager_filter='g',
-                                       total_mag=9.):
+                                       oversampling=10,
+                                       total_mag=9.105):
     """
     This function produces a noiseless image using gunagala psf mudule.
 
@@ -48,7 +49,7 @@ def create_mock_galaxy_noiseless_image(galaxy_sim_data_raw,
 
     galaxy_psf = gg.psf.PixellatedPSF(galaxy_sim_data_raw,
                                       psf_sampling=sim_arcsec_pixel,
-                                      oversampling=10,
+                                      oversampling=oversampling,
                                       psf_centre=galaxy_centre)
     galaxy = gg.imager.Imager(optic=imager.optic,
                               camera=imager.camera,
@@ -67,63 +68,34 @@ def create_mock_galaxy_noiseless_image(galaxy_sim_data_raw,
 
 def convolve_image_psf(input_data,
                        psf_data,
-                       image_arcsec_pixel,
-                       oversampling=10,
-                       convolution_boundary="None"):
+                       convolution_boundary=None):
     """
     Convolves an image with input PSF.
 
     Parameters
     ----------
     input_data : numpy.ndarray
-        Raw data of simulation that is going to be processed.
+        Image data that is going to be processed.
     psf_data : numpy.ndarray
         Imager's psf which should be provided by user.
-    image_arcsec_pixel : astropy.units.quantity.Quantity
-        Input image resolution (arcsec/pixel).
-    convolution_boundary="None" : bool, optional
-        Determines if user need to use extended boundary for convolution.
+    convolution_boundary : None, optional
+        It indicates how to handle boundaries.
 
     Returns
     -------
     numpy.ndarray
         Convolved data of the simulated object.
     This function convert an image to a convolved image with input PSF that is
-    provided by user. It uses the PSF to produce psf data which is the input to
-    astropy.convolve as its kernel. The shape of the kernel should be odd and
-    convolve_image_psf makes its shape odd if it is not.
+    provided by user. It uses the PSF as kernel for astropy.convolve, which
+    only accepts kernels with odd shapes. In addition, the function normalises
+    the PSF.
+
     """
 
-    # Making sure pixel scale has the right unit.
-    image_arcsec_pixel = gg.utils.ensure_unit(image_arcsec_pixel,
-                                              u.arcsec / u.pixel)
-    # Defining centre for the galaxy_psf.
-    psf_shape = psf_data.shape
-    psf_centre = (int(psf_shape[0] / 2), int(psf_shape[1] / 2))
-
-    # Producing psf data to be used as a cernel for `convolve()`.
-    image_psf = gg.psf.PixellatedPSF(psf_data,
-                                     psf_sampling=image_arcsec_pixel,
-                                     oversampling=oversampling,
-                                     psf_centre=psf_centre)
-
-    kernel = image_psf._psf_data
-    shape = kernel.shape
-    col_len = shape[0]
-
-    # Making the kernel's shape odd numbers if they are not already.
-    if shape[0] / 2 == int(shape[0] / 2):
-        add_row = np.zeros((1, shape[0]))
-        add_row[0, :] = kernel[shape[0] - 1, :]
-        kernel = np.append(kernel, add_row, axis=0)
-        col_len += 1
-
-    if shape[1] / 2 == int(shape[1] / 2):
-        add_col = np.zeros((col_len, 1))
-        add_col[:, 0] = kernel[:, shape[1] - 1]
-        kernel = np.append(kernel, add_col, axis=1)
-
-    convolved = convolve(input_data, kernel, boundary=convolution_boundary)
+    convolved = convolve(input_data,
+                         psf_data,
+                         boundary=convolution_boundary,
+                         normalize_kernel=True)
 
     return convolved
 
