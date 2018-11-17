@@ -100,6 +100,40 @@ def convolve_image_psf(input_data,
     return convolved
 
 
+def mock_image_stack(input_image,
+                     imager,
+                     n_exposures=100,
+                     exptime=500 * u.s):
+    """Summary
+
+    Parameters
+    ----------
+    input_image : astropy.nddata.ccddata.CCDData
+        The input image which is going to be used to create quasi-real images.
+    imager : gunagala.imager.Imager
+        Imager instance from gunagala.
+    n_exposures : int, optional
+        Number of exposures of the imager.
+    exptime : TYPE, optional
+        The exposures time.
+
+    Returns
+    -------
+    numpy.ndarray
+        This function makes the input image real by gg.imager.make_image_real.
+        It creates real images in number of n_exposures and stack them to creat
+        stacked image.
+    """
+    coadd = imager.make_image_real(input_image, exptime).data
+    n_exposures -= 1
+
+    for i in range(n_exposures):
+        coadd = coadd + imager.make_image_real(input_image, exptime).data
+    coadd = coadd / (n_exposures + 1)
+
+    return coadd
+
+
 def compute_pixel_scale(distance=10.,
                         sim_pc_pixel=170):
     """
