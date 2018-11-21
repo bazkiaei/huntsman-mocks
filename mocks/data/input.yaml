@@ -1,0 +1,18 @@
+observation_time:
+    '2018-04-12T08:00'
+
+galaxy_coordinates:
+    '14h40m56.435s -60d53m48.3s'
+
+imager_filter: # This is where the user chooses the filter of the imager
+    'g'
+
+mass_to_light_ratio:
+    g: 5
+    r: 5
+
+distance:
+    10.
+
+sim_pc_pixel:
+    170 # The resolution of the simulation(parsec / pixel).
