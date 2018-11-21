@@ -9,7 +9,7 @@ from astropy.cosmology import WMAP9 as cosmo
 from astropy.coordinates import Distance
 
 
-def compute(input_information='input',
+def mocks_input(input_information='input',
 			path='/Users/amir.ebadati-bazkiaei/huntsman-mocks/mocks/data'):
 
 	path = os.path.join(path, input_information)
