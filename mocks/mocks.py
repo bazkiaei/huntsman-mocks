@@ -1,3 +1,5 @@
+import os
+
 import numpy as np
 
 import astropy.units as u
@@ -6,6 +8,32 @@ from astropy.coordinates import Distance
 from astropy.convolution import convolve
 
 import gunagala as gg
+
+
+def prepare_mocks(input_information='input',
+                  path='/Users/amir.ebadati-bazkiaei/huntsman-mocks/mocks/data'):
+
+    path = os.path.join(path, input_information)
+
+    input_information = gg.config.load_config(path)
+
+    mock_image_input = dict()
+
+    mock_image_input['galaxy_coordinates'] = input_information['galaxy_coordinates']
+
+    mock_image_input['observation_time'] = input_information['observation_time']
+
+    mock_image_input['imager_filter'] = input_information['imager_filter']
+
+    # Compution of the pixel scale.
+    sim_pc_pixel = gg.utils.ensure_unit(input_information['sim_pc_pixel'],
+                                        u.parsec / u.pixel)
+    d = Distance(input_information['distance'] * u.Mpc)
+    z = d.compute_z(cosmo)
+    angular_pc = cosmo.kpc_proper_per_arcmin(z).to(u.parsec / u.arcsec)
+    mock_image_input['pixel_scale'] = sim_pc_pixel / angular_pc
+
+    return mock_image_input
 
 
 def create_mock_galaxy_noiseless_image(galaxy_sim_data_raw,
