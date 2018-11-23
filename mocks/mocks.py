@@ -1,5 +1,7 @@
 import numpy as np
 
+import time
+
 import astropy.units as u
 from astropy.cosmology import WMAP9 as cosmo
 from astropy.coordinates import Distance
@@ -124,14 +126,14 @@ def mock_image_stack(input_image,
         It creates real images in number of n_exposures and stack them to creat
         stacked image.
     """
-    coadd = imager.make_image_real(input_image, exptime).data
-    n_exposures -= 1
 
-    for i in range(n_exposures):
-        coadd = coadd + imager.make_image_real(input_image, exptime).data
-    coadd = coadd / (n_exposures + 1)
+    start_time = time.time()
+    real_images = np.array([imager.make_image_real(input_image, exptime).data
+                            for i in range(n_exposures)])
+    print("Stacking ", n_exposures,
+          " images took", time.time() - start_time, "to run")
 
-    return coadd
+    return real_images.mean(axis=0)
 
 
 def compute_pixel_scale(distance=10.,
