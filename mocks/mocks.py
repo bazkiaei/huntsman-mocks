@@ -2,10 +2,13 @@ import os
 
 import numpy as np
 
+import time
+
 import astropy.units as u
 from astropy.cosmology import WMAP9 as cosmo
 from astropy.coordinates import Distance
 from astropy.convolution import convolve
+from astropy.nddata import CCDData
 
 import gunagala as gg
 
@@ -136,7 +139,7 @@ def mock_image_stack(input_image,
 
     Parameters
     ----------
-    input_image : astropy.nddata.ccddata.CCDData
+    input_image : numpy.ndarray
         The input image which is going to be used to create quasi-real images.
     imager : gunagala.imager.Imager
         Imager instance from gunagala.
@@ -152,14 +155,25 @@ def mock_image_stack(input_image,
         It creates real images in number of n_exposures and stack them to creat
         stacked image.
     """
-    coadd = imager.make_image_real(input_image, exptime).data
-    n_exposures -= 1
+    # measuring the time for stacking images.
+    start_time = time.time()
 
-    for i in range(n_exposures):
-        coadd = coadd + imager.make_image_real(input_image, exptime).data
-    coadd = coadd / (n_exposures + 1)
+    # check the input data to be numpy.ndarray type.
+    if not isinstance(input_image, np.ndarray):
+        raise TypeError("The input to 'mock_image_stack' should have numpy.ndarray type.")
 
-    return coadd
+    # Because imager.make_image_real accept CCDData,
+    # we convert input data to CCDData.
+    input_image = CCDData(input_image, unit="electron / (pixel * second)")
+
+    real_images = np.array([imager.make_image_real(input_image, exptime).data
+                            for i in range(n_exposures)])
+
+    # reporting how long the stacking took.
+    print("Stacking ", n_exposures,
+          " images took", time.time() - start_time, "to run")
+
+    return real_images.mean(axis=0)
 
 
 def compute_pixel_scale(distance=10.,
