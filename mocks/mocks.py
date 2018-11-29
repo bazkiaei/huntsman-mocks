@@ -126,6 +126,9 @@ def mock_image_stack(input_image,
         This function makes the input image real by gg.imager.make_image_real.
         It creates real images in number of n_exposures and stack them to creat
         stacked image.
+        The input to `make_image_real` should be CCDData with unit of:
+        `electron / (pixel * second)`. We want `numpy.ndarray` as the input to
+        `mock_image_stack` so we make the conversion inside the function.
     """
     # measuring the time for stacking images.
     start_time = time.time()
