@@ -75,8 +75,9 @@ def create_mock_galaxy_noiseless_image(galaxy_sim_data_raw,
 
     sim_arcsec_pixel = gg.utils.ensure_unit(sim_arcsec_pixel,
                                             u.arcsec / u.pixel)
-    galaxy_centre = (galaxy_sim_data_raw.shape[0] / 2,
-                     galaxy_sim_data_raw.shape[1] / 2)
+
+    galaxy_centre = ((galaxy_sim_data_raw.shape[0] / 2) - .5,
+                     (galaxy_sim_data_raw.shape[1] / 2) - .5)
 
     galaxy_psf = gg.psf.PixellatedPSF(galaxy_sim_data_raw,
                                       psf_sampling=sim_arcsec_pixel,
@@ -154,6 +155,9 @@ def mock_image_stack(input_image,
         This function makes the input image real by gg.imager.make_image_real.
         It creates real images in number of n_exposures and stack them to creat
         stacked image.
+        The input to `make_image_real` should be CCDData with unit of:
+        `electron / (pixel * second)`. We want `numpy.ndarray` as the input to
+        `mock_image_stack` so we make the conversion inside the function.
     """
     # measuring the time for stacking images.
     start_time = time.time()
