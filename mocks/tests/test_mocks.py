@@ -21,14 +21,6 @@ def pixel_scale_value():
     return 3.5 * u.arcsecond / u.pixel
 
 
-@pytest.fixture
-def galaxy_sim_data():
-    fitsfile_path = "mocks/tests/data/cl19.fits"
-    galaxy_sim = fits.open(fitsfile_path)
-    yield galaxy_sim[0].data
-    galaxy_sim.close()
-
-
 @pytest.fixture(scope='module')
 def huntsman_sbig_dark_imager():
     imagers = imager.create_imagers()
