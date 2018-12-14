@@ -72,18 +72,22 @@ def create_mock_galaxy_noiseless_image(galaxy_sim_data_raw,
 
 def convolve_image_psf(input_data,
                        psf_data,
-                       convolution_boundary=None):
+                       convolution_boundary=None,
+                       mask_copied_to_output=True):
     """
     Convolves an image with input PSF.
 
     Parameters
     ----------
-    input_data : numpy.ndarray
+    input_data : CCDData, CCDData-like, numpy.ndarray or similar
         Image data that is going to be processed.
     psf_data : numpy.ndarray
         Imager's psf which should be provided by user.
     convolution_boundary : None, optional
         It indicates how to handle boundaries.
+    mask_copied_to_output : bool, optional
+        Determines that the mask of the input data should be copied to the
+        output data or not.
 
     Returns
     -------
@@ -95,11 +99,24 @@ def convolve_image_psf(input_data,
     the PSF.
 
     """
+    # check the input data to be CCDData type and convert to it if it is not.
+    try:
+        # This will work for CCDData or CCDData-like, which have units.
+        convolved = CCDData(input_data)
 
-    convolved = convolve(input_data,
-                         psf_data,
-                         boundary=convolution_boundary,
-                         normalize_kernel=True)
+    except ValueError:
+        # Try again with manually set units.
+        # This will work for numpy.array or similar.
+        convolved = CCDData(input_data, unit="electron / (pixel * second)")
+
+    convolved.data = convolve(convolved,
+                              psf_data,
+                              boundary=convolution_boundary,
+                              normalize_kernel=True)
+
+    # Deleting the mask of the input data from the output data if user asks.
+    if not mask_copied_to_output:
+        convolved.mask = np.ma.nomask
 
     return convolved
 
