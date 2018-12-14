@@ -1,4 +1,4 @@
--e git+git://github.com/AstroHuntsman/gunagala@develop#egg=gunagala
+-e git+git://github.com/AstroHuntsman/gunagala@image_sim#egg=gunagala
 astropy >= 2.0.0
 ccdproc
 coverage
