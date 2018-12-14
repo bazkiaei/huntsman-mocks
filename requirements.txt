@@ -1,0 +1,11 @@
+-e git+git://github.com/AstroHuntsman/gunagala@master#egg=gunagala
+astropy >= 2.0.0
+ccdproc
+coverage
+numpy >= 1.12.1
+pycodestyle
+pytest >= 2.8.5
+PyYAML >= 3.11
+scipy >= 0.17.1
+wcsaxes
+

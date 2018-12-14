@@ -1,0 +1,17 @@
+dist: trusty
+sudo: required
+language: python
+python:
+  - "3.6"
+cache:
+  pip: true
+install:
+  - cd $TRAVIS_BUILD_DIR
+  - pip install -r requirements.txt
+  - pip install -e .
+script:
+  - coverage run $(which pytest) -v
+  - coverage combine
+after_success:
+  - bash <(curl -s https://codecov.io/bash)
+
