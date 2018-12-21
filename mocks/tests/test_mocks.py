@@ -1,12 +1,9 @@
-import os
-
 import pytest
 
 import numpy as np
 
 import astropy.units as u
 from astropy.nddata import CCDData
-from astropy.io import fits
 
 from gunagala import imager
 
@@ -100,16 +97,16 @@ def test_mock_image_stack(galaxy_sim_data,
                                huntsman_sbig_dark_imager,
                                n_exposures=100,
                                exptime=50 * u.s)
-    assert isinstance(stacked, np.ndarray)
+    assert isinstance(stacked, CCDData)
     assert stacked.shape == galaxy_sim_data.shape
-    assert stacked.max() == pytest.approx(65535.0, rel=1.)
-    assert stacked.min() == pytest.approx(1093., rel=4.)
+    assert stacked.data.max() == pytest.approx(65535.0, rel=1.)
+    assert stacked.data.min() == pytest.approx(1093., rel=4.)
     assert np.mean(stacked) == pytest.approx(1384.2, rel=1.)
     assert np.median(stacked) == pytest.approx(1109.3, rel=1.)
     assert np.std(stacked) == pytest.approx(1559.8, rel=1.)
-    assert stacked[33, 48] == pytest.approx(1374., rel=6.)
-    assert stacked[130, 160] == pytest.approx(1647., rel=6.)
-    assert stacked[235, 203] == pytest.approx(1240., rel=7.)
+    assert stacked.data[33, 48] == pytest.approx(1374., rel=6.)
+    assert stacked.data[130, 160] == pytest.approx(1647., rel=6.)
+    assert stacked.data[235, 203] == pytest.approx(1240., rel=7.)
 
 
 def test_mock_image_stack_with_convolve(galaxy_sim_data,
@@ -122,13 +119,13 @@ def test_mock_image_stack_with_convolve(galaxy_sim_data,
                                huntsman_sbig_dark_imager,
                                n_exposures=100,
                                exptime=50 * u.s)
-    assert isinstance(stacked, np.ndarray)
+    assert isinstance(stacked, CCDData)
     assert stacked.shape == convolved.shape
-    assert stacked.max() == pytest.approx(65535.0, rel=1.)
-    assert stacked.min() == pytest.approx(1095., rel=3.)
+    assert stacked.data.max() == pytest.approx(65535.0, rel=1.)
+    assert stacked.data.min() == pytest.approx(1095., rel=3.)
     assert np.mean(stacked) == pytest.approx(1384.6, rel=1.)
     assert np.median(stacked) == pytest.approx(1163.3, rel=1.)
     assert np.std(stacked) == pytest.approx(1365.7, rel=1.)
-    assert stacked[33, 48] == pytest.approx(1321., rel=6.)
-    assert stacked[130, 160] == pytest.approx(1674., rel=6.)
-    assert stacked[235, 203] == pytest.approx(1216., rel=6.)
+    assert stacked.data[33, 48] == pytest.approx(1321., rel=6.)
+    assert stacked.data[130, 160] == pytest.approx(1674., rel=6.)
+    assert stacked.data[235, 203] == pytest.approx(1216., rel=6.)

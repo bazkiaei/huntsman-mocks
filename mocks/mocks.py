@@ -8,6 +8,8 @@ from astropy.coordinates import Distance
 from astropy.convolution import convolve
 from astropy.nddata import CCDData
 
+import ccdproc
+
 import gunagala as gg
 
 
@@ -125,11 +127,17 @@ def mock_image_stack(input_image,
                      imager,
                      n_exposures=100,
                      exptime=500 * u.s):
-    """Summary
+    """
+    Creating a sequence of simulated images and stacking them.
+
+    This function takes a noiseless input image (with units of
+    photo-electrons/sec/pixel) and creates a series of simulated images with a
+    given exposure time, then stacks them into a single output image.
 
     Parameters
     ----------
-    input_image : numpy.ndarray
+    input_image : astropy.nddata.ccddata.CCDData, CCDData-like, numpy.ndarray
+    or similar
         The input image which is going to be used to create quasi-real images.
     imager : gunagala.imager.Imager
         Imager instance from gunagala.
@@ -140,33 +148,38 @@ def mock_image_stack(input_image,
 
     Returns
     -------
-    numpy.ndarray
-        This function makes the input image real by gg.imager.make_image_real.
-        It creates real images in number of n_exposures and stack them to creat
-        stacked image.
-        The input to `make_image_real` should be CCDData with unit of:
-        `electron / (pixel * second)`. We want `numpy.ndarray` as the input to
-        `mock_image_stack` so we make the conversion inside the function.
+    astropy.nddata.ccddata.CCDData
+
+    Notes
+    -----
+        This function is using the `gunagala.Imager.make_image_real` method to
+        create simulated images. Check the gunagala package for further
+        information.
     """
     # measuring the time for stacking images.
     start_time = time.time()
 
-    # check the input data to be numpy.ndarray type.
-    if not isinstance(input_image, np.ndarray):
-        raise TypeError("The input to 'mock_image_stack' should have numpy.ndarray type.")
+    # check the input data to be CCDData type and convert to it if it is not.
+    try:
+        # This will work for CCDData or CCDData-like, which have units.
+        input_image = CCDData(input_image)
+    except ValueError:
+        # Try again with manually set units.
+        # This will work for numpy.array or similar.
+        input_image = CCDData(input_image, unit="electron / (pixel * second)")
 
-    # Because imager.make_image_real accept CCDData,
-    # we convert input data to CCDData.
-    input_image = CCDData(input_image, unit="electron / (pixel * second)")
+    real_images = [imager.make_image_real(input_image, exptime)
+                   for i in range(n_exposures)]
 
-    real_images = np.array([imager.make_image_real(input_image, exptime).data
-                            for i in range(n_exposures)])
+    real_images = ccdproc.Combiner(real_images)
+
+    stacked_image = real_images.average_combine()
 
     # reporting how long the stacking took.
     print("Stacking ", n_exposures,
           " images took", time.time() - start_time, "to run")
 
-    return real_images.mean(axis=0)
+    return stacked_image
 
 
 def compute_pixel_scale(distance=10.,
