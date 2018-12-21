@@ -148,7 +148,7 @@ def mock_image_stack(input_image,
 
     Returns
     -------
-    astropy.nddata.ccddata.CCDData
+    astropy.nddata.CCDData
 
     Notes
     -----
