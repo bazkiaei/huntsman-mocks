@@ -1,18 +1,20 @@
-observation_time:
-    '2018-04-12T08:00'
+# Path to the fits file of simulation data.
+data_path: 'sim_data/cl19.fits'
 
-galaxy_coordinates:
-    '14h40m56.435s -60d53m48.3s'
-
-imager_filter: # This is where the user chooses the filter of the imager
-    'g'
+# This is where the user chooses the filter of the imager
+imager_filter: 'g'
 
 mass_to_light_ratio:
     g: 5
     r: 5
 
-distance:
-    10.
+distance: 10.
 
-sim_pc_pixel:
-    170 # The resolution of the simulation(parsec / pixel).
+# The resolution of the simulation(parsec / pixel).
+sim_pc_pixel: 170 
+
+# The baryonic mass of simulation particles (1e5 * Msol/h).
+particle_baryonic_mass_sim: 9.6031355
+
+# The amount of hubble constant ((Km/s)/Mpc).
+hubble_constant: 0.705

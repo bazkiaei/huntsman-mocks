@@ -43,28 +43,25 @@ def test_compute_pixel_scale():
     assert pixel_scale * u.pixel / u.arcsec == pytest.approx(3.522, 1e-3)
 
 
-def test_create_mock_galaxy_noiseless_image(galaxy_sim_data,
-                                            huntsman_sbig_dark_imager,
-                                            pixel_scale_value,
-                                            coordinates_string):
-    noiseless_image = create_mock_galaxy_noiseless_image(galaxy_sim_data,
-                                                         huntsman_sbig_dark_imager,
-                                                         pixel_scale_value,
-                                                         coordinates_string,
-                                                         total_mag=9.1)
+def test_create_mock_galaxy_noiseless_image(config,
+                                            galaxy_sim_data,
+                                            huntsman_sbig_dark_imager):
+    noiseless_image = create_mock_galaxy_noiseless_image(config,
+                                                         galaxy_sim_data,
+                                                         huntsman_sbig_dark_imager)
     assert isinstance(noiseless_image, CCDData)
     assert noiseless_image.data.shape == (3326, 2504)
     assert noiseless_image.data.min() == pytest.approx(1.274705830156097,
                                                        rel=1e-12)
-    assert noiseless_image.data.max() == pytest.approx(62.19201059148003,
+    assert noiseless_image.data.max() == pytest.approx(62.17074117534639,
                                                        rel=1e-12)
-    assert np.mean(noiseless_image) == pytest.approx(1.277692636294709,
+    assert np.mean(noiseless_image) == pytest.approx(1.2776926704769145,
                                                      rel=1e-12)
     assert np.median(noiseless_image) == pytest.approx(1.274705830156097,
                                                        rel=1e-12)
-    assert noiseless_image.data.sum() == pytest.approx(10641012.69362377,
+    assert noiseless_image.data.sum() == pytest.approx(10641012.978303568,
                                                        rel=1e-8)
-    assert np.std(noiseless_image) == pytest.approx(0.12039479851605546,
+    assert np.std(noiseless_image) == pytest.approx(0.11971371184012602,
                                                     rel=1e-12)
     assert noiseless_image.unit == "electron / (pix s)"
     assert noiseless_image.uncertainty is None

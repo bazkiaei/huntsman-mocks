@@ -9,62 +9,102 @@ from astropy.cosmology import WMAP9 as cosmo
 from astropy.coordinates import Distance
 from astropy.convolution import convolve
 from astropy.nddata import CCDData
+from astropy.io import fits
 
 import ccdproc
 
 import gunagala as gg
 
 
-def prepare_mocks(input_information='input',
-                  path='/Users/amir.ebadati-bazkiaei/huntsman-mocks/mocks/data'):
+def prepare_mocks(observation_time='2018-04-12T08:00',
+                  galaxy_coordinates='14h40m56.435s -60d53m48.3s',
+                  filename='input'):
+    """
+    Creates a dictionary containing configuration data and a numpy.array of
+    the simulation data.
 
-    path = os.path.join(path, input_information)
+    Parameters
+    ----------
+    observation_time : str, optional
+        The date and tim of observation.
+        Format: 'yyyy-mm-ddThh:mm'
+    galaxy_coordinates : str, optional
+        Coordinates of the object.
+    filename : str, optional
+        The name of the yaml file that contains initial information.
 
-    input_information = gg.config.load_config(path)
+    Returns
+    -------
+    mock_image_input: dict
+    galaxy_sim_data_raw: numpy.array
+        Description
+    """
+    path = os.path.join(os.path.abspath('huntsman-mocks'),
+                        'mocks/data/{}.yaml'.format(filename))
+
+    input_info = gg.config.load_config(path)
 
     mock_image_input = dict()
 
-    mock_image_input['galaxy_coordinates'] = input_information['galaxy_coordinates']
+    mock_image_input['galaxy_coordinates'] = galaxy_coordinates
 
-    mock_image_input['observation_time'] = input_information['observation_time']
+    mock_image_input['observation_time'] = observation_time
 
-    mock_image_input['imager_filter'] = input_information['imager_filter']
+    mock_image_input['imager_filter'] = input_info['imager_filter']
 
-    # Compution of the pixel scale.
-    sim_pc_pixel = gg.utils.ensure_unit(input_information['sim_pc_pixel'],
+    # Computing the pixel scale.
+    sim_pc_pixel = gg.utils.ensure_unit(input_info['sim_pc_pixel'],
                                         u.parsec / u.pixel)
-    d = Distance(input_information['distance'] * u.Mpc)
-    z = d.compute_z(cosmo)
+    dis = Distance(input_info['distance'] * u.Mpc)
+    z = dis.compute_z(cosmo)
     angular_pc = cosmo.kpc_proper_per_arcmin(z).to(u.parsec / u.arcsec)
     mock_image_input['pixel_scale'] = sim_pc_pixel / angular_pc
 
-    return mock_image_input
+    # Reading the data.
+    sim_data_path = input_info['data_path']
+    galaxy_sim_data_raw = fits.open(sim_data_path)[0].data
+
+    # Computing the total mass of the galaxy:
+    p_mass = input_info['particle_baryonic_mass_sim'] * 1e5
+    H = input_info['hubble_constant']
+    galaxy_mass = np.sum(galaxy_sim_data_raw) * p_mass * H
+
+    band = input_info['imager_filter']
+    # Mass to light ration of demanded band (filter).
+    M_TO_L = input_info['mass_to_light_ratio']
+    m_to_l = M_TO_L[band]
+    # AB mag http://mips.as.arizona.edu/~cnaw/sun.html
+    M_sun = 5.11 * u.ABmag
+    # Total luminosity of the simulated galaxy.
+    total_lum_sim = galaxy_mass / m_to_l
+    # Total absolute ABmag of the simulated galaxy in the demanded band.
+    absolute_ABmag_sim = (-2.5 * np.log10(total_lum_sim) *
+                          u.ABmag + M_sun)
+    # Distance modulus at redshift `z`.
+    mM = cosmo.distmod(z)
+    # Total apparent ABmag of the simulated galaxy in the demanded band.
+    mock_image_input['total_mag'] = absolute_ABmag_sim + mM
+
+    return mock_image_input, galaxy_sim_data_raw
 
 
-def create_mock_galaxy_noiseless_image(galaxy_sim_data_raw,
+def create_mock_galaxy_noiseless_image(config,
+                                       galaxy_sim_data_raw,
                                        imager,
-                                       sim_arcsec_pixel,
-                                       galaxy_coordinates,
-                                       observation_time='2018-04-12T08:00',
-                                       imager_filter='g',
-                                       oversampling=10,
-                                       total_mag=9.105):
+                                       oversampling=10):
     """
     This function produces a noiseless image using gunagala psf mudule.
 
     Parameters
     ----------
+    config : dict
+        a dictionary consist of configuration data for the function
     galaxy_sim_data_raw : numpy.ndarray
         The raw simulation data.
     imager : gunagala.imager.Imager
         Imager instance from gunagala.
-    sim_arcsec_pixel : astropy.units.Quantity
-        Pixel scale (angle/pixel) of psf_data.
-    imager_filter : str, optional
-        Optical filter name.
-    total_mag : float, optional
-        Total apparent ABmag of the simulated object in determined band.
-        TODO: Should be defined by another function?
+    oversampling : int, optional
+        Oversampling factor used when shifting & resampling the PSF.
 
     Returns
     -------
@@ -73,7 +113,24 @@ def create_mock_galaxy_noiseless_image(galaxy_sim_data_raw,
      Note, this function is a quick mock generator using gunagala's PSF
      infrastructure to drop in simulation data as "stars" into an image.
      To derive the PSF, it is assumed that the galaxy is in the centre.
-        """
+
+    Deleted Parameters
+    ------------------
+    sim_arcsec_pixel : astropy.units.Quantity
+        Pixel scale (angle/pixel) of psf_data.
+    imager_filter : str, optional
+        Optical filter name.
+    total_mag : float, optional
+        Total apparent ABmag of the simulated object in determined band.
+        TODO: Should be defined by another function?
+    """
+
+    # restoring configuration data.
+    sim_arcsec_pixel = config['pixel_scale']
+    galaxy_coordinates = config['galaxy_coordinates']
+    observation_time = config['observation_time']
+    imager_filter = config['imager_filter']
+    total_mag = config['total_mag']
 
     sim_arcsec_pixel = gg.utils.ensure_unit(sim_arcsec_pixel,
                                             u.arcsec / u.pixel)
@@ -95,7 +152,7 @@ def create_mock_galaxy_noiseless_image(galaxy_sim_data_raw,
                                                    obs_time=observation_time,
                                                    filter_name=imager_filter,
                                                    stars=[(galaxy_coordinates,
-                                                           total_mag)])
+                                                           total_mag.value)])
 
     return mock_image_array
 
