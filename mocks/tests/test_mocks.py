@@ -40,7 +40,8 @@ def test_compute_pixel_scale():
     pixel_scale = compute_pixel_scale(distance=10.,
                                       sim_pc_pixel=170)
     assert isinstance(pixel_scale, u.quantity.Quantity)
-    assert pixel_scale * u.pixel / u.arcsec == pytest.approx(3.522, 1e-3)
+    assert pixel_scale.value == pytest.approx(3.522, 1e-3)
+    assert pixel_scale.unit == 'arcsec / pix'
 
 
 def test_create_mock_galaxy_noiseless_image(galaxy_sim_data,
