@@ -40,7 +40,7 @@ def test_compute_pixel_scale():
     pixel_scale = compute_pixel_scale(distance=10.,
                                       sim_pc_pixel=170)
     assert isinstance(pixel_scale, u.quantity.Quantity)
-    assert pixel_scale * u.pixel / u.arcsec == pytest.approx(3.522, 1e-3)
+    assert pixel_scale.value == pytest.approx(3.522, 1e-3)
 
 
 def test_create_mock_galaxy_noiseless_image(galaxy_sim_data,
@@ -89,6 +89,14 @@ def test_convolve_image_psf(galaxy_sim_data,
                                                       rel=1e-12)
     assert np.std(convolved.data) == pytest.approx(10.19965960180967,
                                                    rel=1e-12)
+
+
+def test_convolve_image_psf_input(galaxy_sim_data,
+                                  pixelated_psf_data,
+                                  huntsman_sbig_dark_imager):
+    data = galaxy_sim_data * u.electron / (u.pixel * u.second)
+    assert convolve_image_psf(data,
+                              pixelated_psf_data)
 
 
 def test_mock_image_stack(galaxy_sim_data,
