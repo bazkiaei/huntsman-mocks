@@ -113,7 +113,7 @@ def test_mock_image_stack_with_convolve(galaxy_sim_data,
     convolved = convolve_image_psf(galaxy_sim_data,
                                    pixelated_psf_data,
                                    convolution_boundary='extend')
-    stacked = mock_image_stack(convolved.data,
+    stacked = mock_image_stack(convolved,
                                huntsman_sbig_dark_imager,
                                n_exposures=100,
                                exptime=50 * u.s)
