@@ -11,6 +11,7 @@ from astropy.nddata import CCDData
 import ccdproc
 
 import gunagala
+from gunagala.utils import ensure_unit
 
 
 def create_mock_galaxy_noiseless_image(galaxy_sim_data_raw,
@@ -47,8 +48,8 @@ def create_mock_galaxy_noiseless_image(galaxy_sim_data_raw,
      To derive the PSF, it is assumed that the galaxy is in the centre.
         """
 
-    sim_arcsec_pixel = gunagala.utils.ensure_unit(sim_arcsec_pixel,
-                                                  u.arcsec / u.pixel)
+    sim_arcsec_pixel = ensure_unit(sim_arcsec_pixel,
+                                   u.arcsec / u.pixel)
 
     galaxy_centre = ((galaxy_sim_data_raw.shape[0] / 2) - .5,
                      (galaxy_sim_data_raw.shape[1] / 2) - .5)
@@ -201,7 +202,7 @@ def compute_pixel_scale(distance=10.,
     float
         Pixel scale that will be used by other function of mocks.py.
     """
-    sim_pc_pixel = gunagala.utils.ensure_unit(sim_pc_pixel, u.parsec / u.pixel)
+    sim_pc_pixel = ensure_unit(sim_pc_pixel, u.parsec / u.pixel)
     d = Distance(distance * u.Mpc)
     z = d.compute_z(cosmo)
     angular_pc = cosmo.kpc_proper_per_arcmin(z).to(u.parsec / u.arcsec)
