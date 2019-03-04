@@ -13,7 +13,8 @@ from astropy.io import fits
 
 import ccdproc
 
-import gunagala as gg
+import gunagala
+from gunagala.utils import ensure_unit
 
 
 def prepare_mocks(observation_time='2018-04-12T08:00',
@@ -132,21 +133,21 @@ def create_mock_galaxy_noiseless_image(config,
     imager_filter = config['imager_filter']
     total_mag = config['total_mag']
 
-    sim_arcsec_pixel = gg.utils.ensure_unit(sim_arcsec_pixel,
-                                            u.arcsec / u.pixel)
+    sim_arcsec_pixel = ensure_unit(sim_arcsec_pixel,
+                                   u.arcsec / u.pixel)
 
     galaxy_centre = ((galaxy_sim_data_raw.shape[0] / 2) - .5,
                      (galaxy_sim_data_raw.shape[1] / 2) - .5)
 
-    galaxy_psf = gg.psf.PixellatedPSF(galaxy_sim_data_raw,
-                                      psf_sampling=sim_arcsec_pixel,
-                                      oversampling=oversampling,
-                                      psf_centre=galaxy_centre)
-    galaxy = gg.imager.Imager(optic=imager.optic,
-                              camera=imager.camera,
-                              filters=imager.filters,
-                              psf=galaxy_psf,
-                              sky=imager.sky)
+    galaxy_psf = gunagala.psf.PixellatedPSF(galaxy_sim_data_raw,
+                                            psf_sampling=sim_arcsec_pixel,
+                                            oversampling=oversampling,
+                                            psf_centre=galaxy_centre)
+    galaxy = gunagala.imager.Imager(optic=imager.optic,
+                                    camera=imager.camera,
+                                    filters=imager.filters,
+                                    psf=galaxy_psf,
+                                    sky=imager.sky)
 
     mock_image_array = galaxy.make_noiseless_image(centre=galaxy_coordinates,
                                                    obs_time=observation_time,
@@ -286,7 +287,7 @@ def compute_pixel_scale(distance=10.,
     float
         Pixel scale that will be used by other function of mocks.py.
     """
-    sim_pc_pixel = gg.utils.ensure_unit(sim_pc_pixel, u.parsec / u.pixel)
+    sim_pc_pixel = ensure_unit(sim_pc_pixel, u.parsec / u.pixel)
     d = Distance(distance * u.Mpc)
     z = d.compute_z(cosmo)
     angular_pc = cosmo.kpc_proper_per_arcmin(z).to(u.parsec / u.arcsec)
