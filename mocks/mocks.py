@@ -43,7 +43,7 @@ def prepare_mocks(observation_time='2018-04-12T08:00',
     path = os.path.join(os.path.abspath('huntsman-mocks'),
                         'mocks/data/{}.yaml'.format(filename))
 
-    input_info = gg.config.load_config(path)
+    input_info = gunagala.config.load_config(path)
 
     mock_image_input = dict()
 
@@ -54,8 +54,8 @@ def prepare_mocks(observation_time='2018-04-12T08:00',
     mock_image_input['imager_filter'] = input_info['imager_filter']
 
     # Computing the pixel scale.
-    sim_pc_pixel = gg.utils.ensure_unit(input_info['sim_pc_pixel'],
-                                        u.parsec / u.pixel)
+    sim_pc_pixel = gunagala.utils.ensure_unit(input_info['sim_pc_pixel'],
+                                              u.parsec / u.pixel)
     dis = Distance(input_info['distance'] * u.Mpc)
     z = dis.compute_z(cosmo)
     angular_pc = cosmo.kpc_proper_per_arcmin(z).to(u.parsec / u.arcsec)
