@@ -11,6 +11,10 @@ from mocks.mocks import compute_pixel_scale
 from mocks.mocks import create_mock_galaxy_noiseless_image
 from mocks.mocks import convolve_image_psf
 from mocks.mocks import mock_image_stack
+from mocks.mocks import prepare_mocks
+from mocks.mocks import compute_redshift
+from mocks.mocks import compute_total_mass
+from mocks.mocks import compute_apparent_ABmag
 
 
 @pytest.fixture(scope='function')
@@ -36,12 +40,13 @@ def pixelated_psf_data(huntsman_sbig_dark_imager):
     return psf_data
 
 
-def test_compute_pixel_scale():
-    pixel_scale = compute_pixel_scale(distance=10.,
-                                      sim_pc_pixel=170)
-    assert isinstance(pixel_scale, u.quantity.Quantity)
-    assert pixel_scale.value == pytest.approx(3.522, 1e-3)
-    assert pixel_scale.unit == 'arcsec / pix'
+def test_prepare_mocks():
+    mocks_config, data = prepare_mocks(folder_name='tests')
+    assert mocks_config['galaxy_coordinates'] == '14h40m56.435s -60d53m48.3s'
+    assert mocks_config['observation_time'] == '2018-04-12T08:00'
+    assert mocks_config['imager_filter'] == 'g'
+    assert mocks_config['pixel_scale'].value == 3.5227069721693924
+    assert mocks_config['total_mag'].value == 9.10466504537635
 
 
 def test_create_mock_galaxy_noiseless_image(config,
@@ -127,3 +132,31 @@ def test_mock_image_stack_with_convolve(galaxy_sim_data,
     assert stacked.data[33, 48] == pytest.approx(1321., rel=6.)
     assert stacked.data[130, 160] == pytest.approx(1674., rel=6.)
     assert stacked.data[235, 203] == pytest.approx(1216., rel=6.)
+
+
+def test_compute_redshift():
+    z = compute_redshift(10)
+    assert z == 0.0023080874949477728
+    z1 = compute_redshift(1e4 * u.kpc)
+    assert z == z1
+
+
+def test_compute_pixel_scale():
+    pixel_scale = compute_pixel_scale(0.0023080874949477728,
+                                      sim_pc_pixel=170)
+    assert isinstance(pixel_scale, u.quantity.Quantity)
+    assert pixel_scale.value == pytest.approx(3.522, 1e-3)
+    assert pixel_scale.unit == 'arcsec / pix'
+
+
+def test_compute_total_mass(galaxy_sim_data):
+    total_mass = compute_total_mass(galaxy_sim_data,
+                                    9.6031355)
+    assert total_mass == 126212972737.866
+
+
+def test_compute_apparent_ABmag():
+    apparent_ABmag = compute_apparent_ABmag(0.0023080874949477728,
+                                            126212972737.866,
+                                            5)
+    assert apparent_ABmag.value == 9.10466504537635
