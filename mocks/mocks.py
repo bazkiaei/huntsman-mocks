@@ -1,3 +1,7 @@
+import os
+
+import yaml
+
 import numpy as np
 
 import time
@@ -8,7 +12,6 @@ from astropy.coordinates import Distance
 from astropy.convolution import convolve
 from astropy.nddata import CCDData
 from astropy.io import fits
-from astropy.utils.data import get_pkg_data_filename
 
 import ccdproc
 
@@ -18,24 +21,25 @@ from gunagala.utils import ensure_unit
 
 def prepare_mocks(observation_time='2018-04-12T08:00',
                   galaxy_coordinates='14h40m56.435s -60d53m48.3s',
-                  filename='input',
-                  folder_name='data'):
+                  config_filename='config_example',
+                  folder_name='config_directory'):
     """
     Creates a dictionary containing configuration data and a numpy.array of
     the simulation data.
 
     Parameters
     ----------
-    observation_time : str, optional
-        The date and tim of observation.
-        Format: 'yyyy-mm-ddThh:mm'
-    galaxy_coordinates : str, optional
-        Coordinates of the object.
-    filename : str, optional
-        The name of the yaml file that contains initial information.
+    observation_time : astropy.time.Time or str, optional
+        The date and time of the observation, default 2018-04-12T08:00.
+    galaxy_coordinates : astropy.coordinates.SkyCoord, optional
+        Coordinates of the object, default 14h40m56.435s -60d53m48.3s.
+    config_filename : str, optional
+        The name of the yaml file that contains initial information, default
+        config_example.yaml.
     folder_name : str, optional
         The name of the folder that the yaml file is in it.
-        The folder should be in the mocks package.
+        The folder should be in the huntsman-mocks package, default
+        config_directory.
 
     Returns
     -------
@@ -43,25 +47,21 @@ def prepare_mocks(observation_time='2018-04-12T08:00',
     galaxy_sim_data_raw : numpy.array
         Description
     """
-    config_file_path = get_pkg_data_filename('{}/{}.yaml'.format(folder_name,
-                                             filename),
-                                             package='mocks')
+    path = os.path.normpath(os.path.join(os.path.dirname(__file__), '../'))
+    config_file_path = os.path.join(path,
+                                    folder_name,
+                                    '{}.yaml'.format(config_filename))
 
-    input_info = gunagala.config.load_config(config_file_path)
+    input_info = dict()
+    with open(config_file_path, 'r') as f:
+        c = yaml.load(f.read())
+        input_info.update(c)
 
-    mock_image_input = dict()
-
-    mock_image_input['galaxy_coordinates'] = galaxy_coordinates
-
-    mock_image_input['observation_time'] = observation_time
-
-    mock_image_input['imager_filter'] = input_info['imager_filter']
-
-    z = compute_redshift(input_info['distance'])
+    z = compute_redshift(input_info['physical_distance'])
 
     # Computing the pixel scale.
-    mock_image_input['pixel_scale'] = compute_pixel_scale(z,
-                                                          input_info['sim_pc_\
+    input_info['pixel_scale'] = compute_pixel_scale(z,
+                                                    input_info['sim_pc_\
 pixel'])
 
     # Reading the data.
@@ -82,9 +82,9 @@ pixel'])
                                                       galaxy_mass,
                                                       m_to_l)
 
-    mock_image_input['total_mag'] = total_apparent_ABmag_sim
+    input_info['total_mag'] = total_apparent_ABmag_sim
 
-    return mock_image_input, galaxy_sim_data_raw
+    return input_info, galaxy_sim_data_raw
 
 
 def create_mock_galaxy_noiseless_image(config,
@@ -305,8 +305,9 @@ def compute_pixel_scale(z,
         Pixel scale that will be used by other function of mocks.py.
     """
     sim_pc_pixel = ensure_unit(sim_pc_pixel, u.parsec / u.pixel)
-    angular_pc = cosmo.kpc_proper_per_arcmin(z).to(u.parsec / u.arcsec)
-    image_arcsec_pixel = sim_pc_pixel / angular_pc
+    proper_parsec_per_arcsec =\
+        cosmo.kpc_proper_per_arcmin(z).to(u.parsec / u.arcsec)
+    image_arcsec_pixel = sim_pc_pixel / proper_parsec_per_arcsec
 
     return image_arcsec_pixel
 
@@ -324,12 +325,14 @@ def compute_total_mass(galaxy_sim_data_raw,
     galaxy_sim_data_raw : numpy.ndarray
         A 2D array, representing the number particles in each pixel.
     particle_mass_sim : float
-        The mass of one particle. The simulation information should proviedes
+        The mass of one particle. The simulation information should provide
         it.
     mass_factor : float, optional
-        The factor that determines the  real mass of each particle.
+        The factor that determines the  real mass of each particle, default
+        1e5.
     H : float, optional
-        Hubble constant. The simulation information should proviedes it.
+        Hubble constant. The simulation information should proviedes it,
+        default 0.705.
 
     Returns
     -------
@@ -353,7 +356,8 @@ def compute_apparent_ABmag(z,
     z : float
         The redshift of the target galaxy at the demanded distance.
     galaxy_mass : float
-        The total mass of the target galaxy and all masses in its environment.
+        The total mass of the target galaxy and all masses in its environment
+        in solar mass units.
     mass_to_light : float
         The mass to light ratio of the target.
 
@@ -363,13 +367,13 @@ def compute_apparent_ABmag(z,
         The apparent magnitude of the target and its environment.
     """
     # AB mag http://mips.as.arizona.edu/~cnaw/sun.html
-    M_sun = 5.11
+    abs_mag_sun = 5.11
     # Total luminosity of the simulated galaxy.
     total_lum_sim = galaxy_mass / mass_to_light
     # Total absolute ABmag of the simulated galaxy in the demanded band.
-    absolute_ABmag = (M_sun - 2.5 * np.log10(total_lum_sim)) * u.ABmag
+    absolute_ABmag = (abs_mag_sun - 2.5 * np.log10(total_lum_sim)) * u.ABmag
     # Distance modulus at redshift `z`.
-    mM = cosmo.distmod(z)
+    distance_modulus = cosmo.distmod(z)
 
-    apparent_mag = absolute_ABmag + mM
+    apparent_mag = absolute_ABmag + distance_modulus
     return apparent_mag

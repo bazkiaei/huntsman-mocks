@@ -7,14 +7,7 @@ from astropy.nddata import CCDData
 
 from gunagala import imager
 
-from mocks.mocks import compute_pixel_scale
-from mocks.mocks import create_mock_galaxy_noiseless_image
-from mocks.mocks import convolve_image_psf
-from mocks.mocks import mock_image_stack
-from mocks.mocks import prepare_mocks
-from mocks.mocks import compute_redshift
-from mocks.mocks import compute_total_mass
-from mocks.mocks import compute_apparent_ABmag
+from mocks import mocks
 
 
 @pytest.fixture(scope='function')
@@ -41,33 +34,37 @@ def pixelated_psf_data(huntsman_sbig_dark_imager):
 
 
 def test_prepare_mocks():
-    mocks_config, data = prepare_mocks(folder_name='tests')
+    mocks_config, data = mocks.prepare_mocks()
     assert mocks_config['galaxy_coordinates'] == '14h40m56.435s -60d53m48.3s'
     assert mocks_config['observation_time'] == '2018-04-12T08:00'
     assert mocks_config['imager_filter'] == 'g'
-    assert mocks_config['pixel_scale'].value == 3.5227069721693924
-    assert mocks_config['total_mag'].value == 9.10466504537635
+    assert mocks_config['pixel_scale'].to(u.arcsec / u.pixel).value ==\
+        pytest.approx(3.5227069721693924,
+                      rel=1e-12)
+    assert mocks_config['total_mag'].to(u.ABmag).value == pytest.approx(
+        9.10466504537635,
+        rel=1e-12)
 
 
-def test_create_mock_galaxy_noiseless_image(config,
-                                            galaxy_sim_data,
-                                            huntsman_sbig_dark_imager):
-    noiseless_image = create_mock_galaxy_noiseless_image(config,
-                                                         galaxy_sim_data,
-                                                         huntsman_sbig_dark_imager)
+def test_create_mock_galaxy_noiseless_image(huntsman_sbig_dark_imager):
+    config, galaxy_sim_data = mocks.prepare_mocks()
+    noiseless_image = \
+        mocks.create_mock_galaxy_noiseless_image(config,
+                                                 galaxy_sim_data,
+                                                 huntsman_sbig_dark_imager)
     assert isinstance(noiseless_image, CCDData)
     assert noiseless_image.data.shape == (3326, 2504)
     assert noiseless_image.data.min() == pytest.approx(1.274705830156097,
                                                        rel=1e-12)
-    assert noiseless_image.data.max() == pytest.approx(62.17074117534639,
+    assert noiseless_image.data.max() == pytest.approx(61.909652519566656,
                                                        rel=1e-12)
-    assert np.mean(noiseless_image) == pytest.approx(1.2776926704769145,
+    assert np.mean(noiseless_image) == pytest.approx(1.2776798645535397,
                                                      rel=1e-12)
     assert np.median(noiseless_image) == pytest.approx(1.274705830156097,
                                                        rel=1e-12)
-    assert noiseless_image.data.sum() == pytest.approx(10641012.978303568,
+    assert noiseless_image.data.sum() == pytest.approx(10640906.326680703,
                                                        rel=1e-8)
-    assert np.std(noiseless_image) == pytest.approx(0.11971371184012602,
+    assert np.std(noiseless_image) == pytest.approx(0.11920044545602064,
                                                     rel=1e-12)
     assert noiseless_image.unit == "electron / (pix s)"
     assert noiseless_image.uncertainty is None
@@ -76,8 +73,8 @@ def test_create_mock_galaxy_noiseless_image(config,
 
 def test_convolve_image_psf(galaxy_sim_data,
                             pixelated_psf_data):
-    convolved = convolve_image_psf(galaxy_sim_data,
-                                   pixelated_psf_data)
+    convolved = mocks.convolve_image_psf(galaxy_sim_data,
+                                         pixelated_psf_data)
     assert isinstance(convolved, CCDData)
     assert convolved.shape == (300, 300)
     assert convolved.data.min() == pytest.approx(0.0,
@@ -96,10 +93,10 @@ def test_convolve_image_psf(galaxy_sim_data,
 
 def test_mock_image_stack(galaxy_sim_data,
                           huntsman_sbig_dark_imager):
-    stacked = mock_image_stack(galaxy_sim_data,
-                               huntsman_sbig_dark_imager,
-                               n_exposures=100,
-                               exptime=50 * u.s)
+    stacked = mocks.mock_image_stack(galaxy_sim_data,
+                                     huntsman_sbig_dark_imager,
+                                     n_exposures=100,
+                                     exptime=50 * u.s)
     assert isinstance(stacked, CCDData)
     assert stacked.shape == galaxy_sim_data.shape
     assert stacked.data.max() == pytest.approx(65535.0, rel=1.)
@@ -115,13 +112,13 @@ def test_mock_image_stack(galaxy_sim_data,
 def test_mock_image_stack_with_convolve(galaxy_sim_data,
                                         pixelated_psf_data,
                                         huntsman_sbig_dark_imager):
-    convolved = convolve_image_psf(galaxy_sim_data,
-                                   pixelated_psf_data,
-                                   convolution_boundary='extend')
-    stacked = mock_image_stack(convolved,
-                               huntsman_sbig_dark_imager,
-                               n_exposures=100,
-                               exptime=50 * u.s)
+    convolved = mocks.convolve_image_psf(galaxy_sim_data,
+                                         pixelated_psf_data,
+                                         convolution_boundary='extend')
+    stacked = mocks.mock_image_stack(convolved,
+                                     huntsman_sbig_dark_imager,
+                                     n_exposures=100,
+                                     exptime=50 * u.s)
     assert isinstance(stacked, CCDData)
     assert stacked.shape == convolved.shape
     assert stacked.data.max() == pytest.approx(65535.0, rel=1.)
@@ -135,28 +132,32 @@ def test_mock_image_stack_with_convolve(galaxy_sim_data,
 
 
 def test_compute_redshift():
-    z = compute_redshift(10)
-    assert z == 0.0023080874949477728
-    z1 = compute_redshift(1e4 * u.kpc)
+    z = mocks.compute_redshift(10)
+    assert z == pytest.approx(0.0023080874949477728,
+                              rel=1e-12)
+    z1 = mocks.compute_redshift(1e4 * u.kpc)
     assert z == z1
 
 
 def test_compute_pixel_scale():
-    pixel_scale = compute_pixel_scale(0.0023080874949477728,
-                                      sim_pc_pixel=170)
+    pixel_scale = mocks.compute_pixel_scale(0.0023080874949477728,
+                                            sim_pc_pixel=170)
     assert isinstance(pixel_scale, u.quantity.Quantity)
-    assert pixel_scale.value == pytest.approx(3.522, 1e-3)
+    assert pixel_scale.to(u.arcsec / u.pixel).value == pytest.approx(3.522,
+                                                                     1e-3)
     assert pixel_scale.unit == 'arcsec / pix'
 
 
 def test_compute_total_mass(galaxy_sim_data):
-    total_mass = compute_total_mass(galaxy_sim_data,
-                                    9.6031355)
-    assert total_mass == 126212972737.866
+    total_mass = mocks.compute_total_mass(galaxy_sim_data,
+                                          9.6031355)
+    assert total_mass == pytest.approx(126212972737.866,
+                                       1e-3)
 
 
 def test_compute_apparent_ABmag():
-    apparent_ABmag = compute_apparent_ABmag(0.0023080874949477728,
-                                            126212972737.866,
-                                            5)
-    assert apparent_ABmag.value == 9.10466504537635
+    apparent_ABmag = mocks.compute_apparent_ABmag(0.0023080874949477728,
+                                                  126212972737.866,
+                                                  5)
+    assert apparent_ABmag.to(u.ABmag).value == pytest.approx(9.10466504537635,
+                                                             rel=1e-12)
