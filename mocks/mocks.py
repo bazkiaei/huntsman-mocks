@@ -34,7 +34,7 @@ def prepare_mocks(observation_time='2018-04-12T08:00',
     galaxy_coordinates : astropy.coordinates.SkyCoord, optional
         Coordinates of the object, default 14h40m56.435s -60d53m48.3s.
     config_filename : str, optional
-        The name of the yaml file that contains initial information, default
+        The name of the yaml file  that contains initial information, default
         config_example.yaml.
     folder_name : str, optional
         The name of the folder that the yaml file is in it.
@@ -92,7 +92,7 @@ def create_mock_galaxy_noiseless_image(config,
                                        imager,
                                        oversampling=10):
     """
-    This function produces a noiseless image using gunagala psf mudule.
+    This function produces a noiseless image using gunagala psf module.
 
     Parameters
     ----------
@@ -103,7 +103,7 @@ def create_mock_galaxy_noiseless_image(config,
     imager : gunagala.imager.Imager
         Imager instance from gunagala.
     oversampling : int, optional
-        Oversampling factor used when shifting & resampling the PSF.
+        Oversampling factor used when shifting & re-sampling the PSF.
 
     Returns
     -------
@@ -181,7 +181,7 @@ def convolve_image_psf(input_data,
         Convolved data of the simulated object.
     This function convert an image to a convolved image with input PSF that is
     provided by user. It uses the PSF as kernel for astropy.convolve, which
-    only accepts kernels with odd shapes. In addition, the function normalises
+    only accepts kernels with odd shapes. In addition, the function normalizes
     the PSF.
 
     """
@@ -331,7 +331,7 @@ def compute_total_mass(galaxy_sim_data_raw,
         The factor that determines the  real mass of each particle, default
         1e5.
     H : float, optional
-        Hubble constant. The simulation information should proviedes it,
+        Hubble constant. The simulation information should provides it,
         default 0.705.
 
     Returns
@@ -348,7 +348,7 @@ def compute_apparent_ABmag(z,
                            galaxy_mass,
                            mass_to_light):
     """
-    This function computes the apparent magnitude of the targer galaxy and its
+    This function computes the apparent magnitude of the target galaxy and its
     environment with respect to the demanded distance.
 
     Parameters
