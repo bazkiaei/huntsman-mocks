@@ -53,6 +53,8 @@ def prepare_mocks(observation_time='2018-04-12T08:00',
                                     '{}.yaml'.format(config_filename))
 
     input_info = dict()
+    input_info['galaxy_coordinates'] = '14h40m56.435s -60d53m48.3s'
+    input_info['observation_time'] = '2018-04-12T08:00'
     with open(config_file_path, 'r') as f:
         c = yaml.load(f.read())
         input_info.update(c)
