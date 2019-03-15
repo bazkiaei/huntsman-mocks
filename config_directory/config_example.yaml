@@ -1,7 +1,6 @@
-# The date and time of the observation.
-observation_time: '2018-04-12T08:00'
-# Coordinates of the object.
-galaxy_coordinates: '14h40m56.435s -60d53m48.3s'
+# It is here as an example, and if the user wants to change the default
+# settings they should first make a copy and edit that.
+
 # Path to the fits file of simulation data.
 data_path: 'sim_data/cl19.fits'
 
