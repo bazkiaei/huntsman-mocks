@@ -21,8 +21,7 @@ from gunagala.utils import ensure_unit
 
 def prepare_mocks(observation_time='2018-04-12T08:00',
                   galaxy_coordinates='14h40m56.435s -60d53m48.3s',
-                  config_filename='config_example',
-                  folder_name='config_directory'):
+                  config_location='config_example.yaml'):
     """
     Creates a dictionary containing configuration data and a numpy.array of
     the simulation data.
@@ -33,60 +32,65 @@ def prepare_mocks(observation_time='2018-04-12T08:00',
         The date and time of the observation, default 2018-04-12T08:00.
     galaxy_coordinates : astropy.coordinates.SkyCoord, optional
         Coordinates of the object, default 14h40m56.435s -60d53m48.3s.
-    config_filename : str, optional
-        The name of the yaml file  that contains initial information, default
-        config_example.yaml.
-    folder_name : str, optional
-        The name of the folder that the yaml file is in it.
-        The folder should be in the huntsman-mocks package, default
-        config_directory.
+    config_location : str, optional
+        The name (location) of the yaml file that contains initial
+        information, default `config_example.yaml`.
 
     Returns
     -------
     mock_image_input: dict
     galaxy_sim_data_raw : numpy.array
-        Description
+        Prepared information for creating mock images and the simulation data.
     """
-    path = os.path.normpath(os.path.join(os.path.dirname(__file__), '../'))
-    config_file_path = os.path.join(path,
-                                    folder_name,
-                                    '{}.yaml'.format(config_filename))
-
-    input_info = dict()
-    input_info['galaxy_coordinates'] = '14h40m56.435s -60d53m48.3s'
-    input_info['observation_time'] = '2018-04-12T08:00'
-    with open(config_file_path, 'r') as f:
-        c = yaml.load(f.read())
-        input_info.update(c)
-
-    z = compute_redshift(input_info['physical_distance'])
+    if os.path.exists(config_location):
+        # Got a direct path to the file, either relative or absolute,
+        # use as is.
+        config_path = config_location
+    else:
+        # Not a direct path to the file, try adding default config location to
+        # the path
+        config_path = os.path.normpath(os.path.join(os.path.dirname(__file__),
+                                                    '../config_directory',
+                                                    config_location))
+    try:
+        with open(config_path) as config_file:
+            config = yaml.load(config_file)
+    except OSError as err:
+        msg = "Error opening config file '{}': {}".format(config_path, err)
+        raise OSError(msg)
+    except yaml.YAMLError as err:
+        msg = "Error loading config from '{}': {}".format(config_path, err)
+        raise yaml.YAMLError(msg)
+    config['galaxy_coordinates'] = '14h40m56.435s -60d53m48.3s'
+    config['observation_time'] = '2018-04-12T08:00'
+    z = compute_redshift(config['galaxy_distance'])
 
     # Computing the pixel scale.
-    input_info['pixel_scale'] = compute_pixel_scale(z,
-                                                    input_info['sim_pc_\
+    config['pixel_scale'] = compute_pixel_scale(z,
+                                                config['sim_pc_\
 pixel'])
 
     # Reading the data.
-    sim_data_path = input_info['data_path']
-    galaxy_sim_data_raw = fits.open(sim_data_path)[0].data
+    with fits.open(config['data_path']) as sim_fits:
+        galaxy_sim_data_raw = sim_fits[0].data
     # Computing the total mass of the galaxy:
     galaxy_mass = compute_total_mass(galaxy_sim_data_raw,
-                                     input_info['particle_baryonic_mass_sim'],
+                                     config['particle_baryonic_mass_sim'],
                                      mass_factor=1e5,
-                                     H=input_info['hubble_constant'])
+                                     H=config['hubble_constant'])
 
-    band = input_info['imager_filter']
+    band = config['imager_filter']
     # Mass to light ratio of demanded band (filter).
-    M_TO_L = input_info['mass_to_light_ratio']
+    M_TO_L = config['mass_to_light_ratio']
     m_to_l = M_TO_L[band]
     # Total apparent ABmag of the simulated galaxy in the demanded band.
     total_apparent_ABmag_sim = compute_apparent_ABmag(z,
                                                       galaxy_mass,
                                                       m_to_l)
 
-    input_info['total_mag'] = total_apparent_ABmag_sim
+    config['total_mag'] = total_apparent_ABmag_sim
 
-    return input_info, galaxy_sim_data_raw
+    return config, galaxy_sim_data_raw
 
 
 def create_mock_galaxy_noiseless_image(config,

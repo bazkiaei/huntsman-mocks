@@ -11,9 +11,8 @@ mass_to_light_ratio:
     g: 5
     r: 5
 
-# The physical distance (luminosity distance) between the observer and the
-# target galaxy.
-physical_distance: 10.
+# The luminosity distance between the observer and the target galaxy.
+galaxy_distance: 10.
 
 # The resolution of the simulation(parsec / pixel).
 sim_pc_pixel: 170 
