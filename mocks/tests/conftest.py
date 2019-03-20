@@ -3,9 +3,9 @@ import pytest
 
 from astropy.io import fits
 
+
 @pytest.fixture(scope='module')
 def sim_data_dir():
-
     data_dir = os.path.normpath('sim_data')
     return data_dir
 
@@ -17,3 +17,12 @@ def galaxy_sim_data(sim_data_dir):
     yield galaxy_sim[0].data
     galaxy_sim.close()
 
+
+@pytest.fixture
+def MAX_OUTLIER_FRACTION():
+    return 0.02
+
+
+@pytest.fixture
+def N_SIGMA():
+    return 3

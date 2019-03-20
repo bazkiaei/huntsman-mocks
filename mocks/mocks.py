@@ -169,8 +169,13 @@ def mock_image_stack(input_image,
         # This will work for numpy.array or similar.
         input_image = CCDData(input_image, unit="electron / (pixel * second)")
 
-    real_images = [imager.make_image_real(input_image, exptime)
-                   for i in range(n_exposures)]
+    try:
+        real_images = [imager.make_image_real(input_image, exptime)
+                       for i in range(n_exposures)]
+    except u.UnitConversionError as error:
+        message = "Input data units must be e/pixel/s or compatible. Got unit\
+conversion error: {}".format(error)
+        raise u.UnitsError(message)
 
     real_images = ccdproc.Combiner(real_images)
 
