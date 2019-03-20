@@ -3,7 +3,7 @@ import pytest
 import numpy as np
 
 import astropy.units as u
-from astropy.nddata import CCDData
+from astropy.nddata import CCDData, NDData
 
 from gunagala import imager
 
@@ -162,3 +162,63 @@ def test_compute_apparent_ABmag():
                                                   5.11)
     assert apparent_ABmag.to(u.ABmag).value == pytest.approx(9.10466504537635,
                                                              rel=1e-12)
+
+
+def test_mock_image_stack_input_units(galaxy_sim_data,
+                                      huntsman_sbig_dark_imager):
+    data = CCDData(galaxy_sim_data, unit="electron / (pixel * h)")
+    stacked = mocks.mock_image_stack(data,
+                                     huntsman_sbig_dark_imager)
+    assert isinstance(stacked, CCDData)
+    assert stacked.unit == "adu"
+
+
+def test_mock_image_stack_input_NDData(galaxy_sim_data,
+                                       huntsman_sbig_dark_imager):
+    data = NDData(galaxy_sim_data)
+    stacked = mocks.mock_image_stack(data,
+                                     huntsman_sbig_dark_imager)
+    assert isinstance(stacked, CCDData)
+    assert stacked.unit == "adu"
+
+
+def test_mock_image_stack_NDData_units(galaxy_sim_data,
+                                       huntsman_sbig_dark_imager):
+    data = NDData(galaxy_sim_data, unit='meter / pixel')
+    with pytest.raises(u.UnitsError):
+        stacked = mocks.mock_image_stack(data,
+                                         huntsman_sbig_dark_imager)
+
+
+def test_mock_image_stack_input_quantity(galaxy_sim_data,
+                                         huntsman_sbig_dark_imager):
+    data = galaxy_sim_data * u.electron / (u.pixel * u.s)
+    stacked = mocks.mock_image_stack(data,
+                                     huntsman_sbig_dark_imager)
+    assert isinstance(stacked, CCDData)
+    assert stacked.unit == "adu"
+
+
+def test_mock_image_stack_quantity_units(galaxy_sim_data,
+                                         huntsman_sbig_dark_imager):
+    data = galaxy_sim_data * u.meter / u.pixel
+    with pytest.raises(u.UnitsError):
+        stacked = mocks.mock_image_stack(data,
+                                         huntsman_sbig_dark_imager)
+
+
+def test_mock_image_stack_compatible_units(galaxy_sim_data,
+                                           huntsman_sbig_dark_imager,
+                                           N_SIGMA,
+                                           MAX_OUTLIER_FRACTION):
+    data1 = galaxy_sim_data * u.electron / (u.pixel * u.second)
+    data2 = galaxy_sim_data * 3600 * u.electron / (u.pixel * u.hour)
+    stacked1 = mocks.mock_image_stack(data1, huntsman_sbig_dark_imager)
+    stacked2 = mocks.mock_image_stack(data2, huntsman_sbig_dark_imager)
+    assert np.mean(stacked1) == pytest.approx(np.mean(stacked2), rel=2)
+    assert np.median(stacked1) == pytest.approx(np.median(stacked2), rel=2)
+    difference_image = stacked1.subtract(stacked2)
+    pixels_different = abs(difference_image.data) > N_SIGMA * np.std(
+        difference_image)
+    assert np.count_nonzero(pixels_different) <\
+        MAX_OUTLIER_FRACTION * stacked1.size

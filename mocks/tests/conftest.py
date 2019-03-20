@@ -16,3 +16,13 @@ def galaxy_sim_data(sim_data_dir):
     galaxy_sim = fits.open(fits_path)
     yield galaxy_sim[0].data
     galaxy_sim.close()
+
+
+@pytest.fixture
+def MAX_OUTLIER_FRACTION():
+    return 0.02
+
+
+@pytest.fixture
+def N_SIGMA():
+    return 3
