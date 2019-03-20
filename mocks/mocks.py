@@ -8,6 +8,7 @@ import time
 
 import astropy.units as u
 from astropy.cosmology import WMAP9 as cosmo
+
 from astropy.coordinates import Distance
 from astropy.convolution import convolve
 from astropy.nddata import CCDData
@@ -19,9 +20,8 @@ import gunagala
 from gunagala.utils import ensure_unit
 
 
-def prepare_mocks(observation_time='2018-04-12T08:00',
-                  galaxy_coordinates='14h40m56.435s -60d53m48.3s',
-                  config_location='config_example.yaml'):
+def prepare_mocks(config_location='config_example.yaml',
+                  **kwargs):
     """
     Creates a dictionary containing configuration data and a numpy.array of
     the simulation data.
@@ -61,8 +61,14 @@ def prepare_mocks(observation_time='2018-04-12T08:00',
     except yaml.YAMLError as err:
         msg = "Error loading config from '{}': {}".format(config_path, err)
         raise yaml.YAMLError(msg)
-    config['galaxy_coordinates'] = '14h40m56.435s -60d53m48.3s'
-    config['observation_time'] = '2018-04-12T08:00'
+    config['galaxy_coordinates'] =\
+        kwargs.get('galaxy_coordinates',
+                   config.get('galaxy_coordinates',
+                              '14h40m56.435s -60d53m48.3s'))
+    config['observation_time'] =\
+        kwargs.get('observation_time',
+                   config.get('observation_time',
+                              '2018-04-12T08:00'))
     z = compute_redshift(config['galaxy_distance'])
 
     # Computing the pixel scale.
@@ -80,13 +86,15 @@ pixel'])
                                      H=config['hubble_constant'])
 
     band = config['imager_filter']
-    # Mass to light ratio of demanded band (filter).
-    M_TO_L = config['mass_to_light_ratio']
-    m_to_l = M_TO_L[band]
+    # Mass to light ratio for demanded band (filter).
+    mass_to_light = config['mass_to_light_ratio'][band]
+    # Absolute magnitude of the Sun for the demanded band.
+    abs_mag_sun = config['abs_mag_sun'][band]
     # Total apparent ABmag of the simulated galaxy in the demanded band.
     total_apparent_ABmag_sim = compute_apparent_ABmag(z,
                                                       galaxy_mass,
-                                                      m_to_l)
+                                                      mass_to_light,
+                                                      abs_mag_sun)
 
     config['total_mag'] = total_apparent_ABmag_sim
 
@@ -352,7 +360,8 @@ def compute_total_mass(galaxy_sim_data_raw,
 
 def compute_apparent_ABmag(z,
                            galaxy_mass,
-                           mass_to_light):
+                           mass_to_light,
+                           abs_mag_sun):
     """
     This function computes the apparent magnitude of the target galaxy and its
     environment with respect to the demanded distance.
@@ -372,12 +381,15 @@ def compute_apparent_ABmag(z,
     float
         The apparent magnitude of the target and its environment.
     """
-    # AB mag http://mips.as.arizona.edu/~cnaw/sun.html
-    abs_mag_sun = 5.11
-    # Total luminosity of the simulated galaxy.
+    galaxy_mass = ensure_unit(galaxy_mass, u.M_sun)
+    mass_to_light = ensure_unit(mass_to_light, u.M_sun / u.L_sun)
+    abs_mag_sun = ensure_unit(abs_mag_sun, u.ABmag)
+    # Total luminosity of the simulated galaxy in solar luminosities,
+    # integrated over the filter band.
     total_lum_sim = galaxy_mass / mass_to_light
     # Total absolute ABmag of the simulated galaxy in the demanded band.
-    absolute_ABmag = (abs_mag_sun - 2.5 * np.log10(total_lum_sim)) * u.ABmag
+    absolute_ABmag =\
+        (abs_mag_sun.value - 2.5 * np.log10(total_lum_sim.value)) * u.ABmag
     # Distance modulus at redshift `z`.
     distance_modulus = cosmo.distmod(z)
 

@@ -158,6 +158,7 @@ def test_compute_total_mass(galaxy_sim_data):
 def test_compute_apparent_ABmag():
     apparent_ABmag = mocks.compute_apparent_ABmag(0.0023080874949477728,
                                                   126212972737.866,
-                                                  5)
+                                                  5,
+                                                  5.11)
     assert apparent_ABmag.to(u.ABmag).value == pytest.approx(9.10466504537635,
                                                              rel=1e-12)
