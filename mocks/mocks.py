@@ -1,3 +1,7 @@
+import os
+
+import yaml
+
 import numpy as np
 
 import time
@@ -6,9 +10,11 @@ import enum
 
 import astropy.units as u
 from astropy.cosmology import WMAP9 as cosmo
+
 from astropy.coordinates import Distance
 from astropy.convolution import convolve
 from astropy.nddata import CCDData
+from astropy.io import fits
 from astropy import cosmology
 
 import ccdproc
@@ -96,30 +102,104 @@ def scale_light_by_distance(particle_positions,
     return particle_positions.value, particle_values
 
 
-def create_mock_galaxy_noiseless_image(galaxy_sim_data_raw,
+def prepare_mocks(config_location='config_example.yaml',
+                  **kwargs):
+    """
+    Creates a dictionary containing configuration data and a numpy.array of
+    the simulation data.
+
+    Parameters
+    ----------
+    observation_time : astropy.time.Time or str, optional
+        The date and time of the observation, default 2018-04-12T08:00.
+    galaxy_coordinates : astropy.coordinates.SkyCoord, optional
+        Coordinates of the object, default 14h40m56.435s -60d53m48.3s.
+    config_location : str, optional
+        The name (location) of the yaml file that contains initial
+        information, default `config_example.yaml`.
+
+    Returns
+    -------
+    mock_image_input: dict
+    galaxy_sim_data_raw : numpy.array
+        Prepared information for creating mock images and the simulation data.
+    """
+    if os.path.exists(config_location):
+        # Got a direct path to the file, either relative or absolute,
+        # use as is.
+        config_path = config_location
+    else:
+        # Not a direct path to the file, try adding default config location to
+        # the path
+        config_path = os.path.normpath(os.path.join(os.path.dirname(__file__),
+                                                    '../config_directory',
+                                                    config_location))
+    try:
+        with open(config_path) as config_file:
+            config = yaml.load(config_file)
+    except OSError as err:
+        msg = "Error opening config file '{}': {}".format(config_path, err)
+        raise OSError(msg)
+    except yaml.YAMLError as err:
+        msg = "Error loading config from '{}': {}".format(config_path, err)
+        raise yaml.YAMLError(msg)
+    config['galaxy_coordinates'] =\
+        kwargs.get('galaxy_coordinates',
+                   config.get('galaxy_coordinates',
+                              '14h40m56.435s -60d53m48.3s'))
+    config['observation_time'] =\
+        kwargs.get('observation_time',
+                   config.get('observation_time',
+                              '2018-04-12T08:00'))
+    z = compute_redshift(config['galaxy_distance'])
+
+    # Computing the pixel scale.
+    config['pixel_scale'] = compute_pixel_scale(z,
+                                                config['sim_pc_\
+pixel'])
+
+    # Reading the data.
+    with fits.open(config['data_path']) as sim_fits:
+        galaxy_sim_data_raw = sim_fits[0].data
+    # Computing the total mass of the galaxy:
+    galaxy_mass = compute_total_mass(galaxy_sim_data_raw,
+                                     config['particle_baryonic_mass_sim'],
+                                     mass_factor=1e5,
+                                     H=config['hubble_constant'])
+
+    band = config['imager_filter']
+    # Mass to light ratio for demanded band (filter).
+    mass_to_light = config['mass_to_light_ratio'][band]
+    # Absolute magnitude of the Sun for the demanded band.
+    abs_mag_sun = config['abs_mag_sun'][band]
+    # Total apparent ABmag of the simulated galaxy in the demanded band.
+    total_apparent_ABmag_sim = compute_apparent_ABmag(z,
+                                                      galaxy_mass,
+                                                      mass_to_light,
+                                                      abs_mag_sun)
+
+    config['total_mag'] = total_apparent_ABmag_sim
+
+    return config, galaxy_sim_data_raw
+
+
+def create_mock_galaxy_noiseless_image(config,
+                                       galaxy_sim_data_raw,
                                        imager,
-                                       sim_arcsec_pixel,
-                                       galaxy_coordinates,
-                                       observation_time='2018-04-12T08:00',
-                                       imager_filter='g',
-                                       oversampling=10,
-                                       total_mag=9.105):
+                                       oversampling=10):
     """
     This function produces a noiseless image using gunagala psf module.
 
     Parameters
     ----------
+    config : dict
+        a dictionary consist of configuration data for the function
     galaxy_sim_data_raw : numpy.ndarray
         The raw simulation data.
     imager : gunagala.imager.Imager
         Imager instance from gunagala.
-    sim_arcsec_pixel : astropy.units.Quantity
-        Pixel scale (angle/pixel) of psf_data.
-    imager_filter : str, optional
-        Optical filter name.
-    total_mag : float, optional
-        Total apparent ABmag of the simulated object in determined band.
-        TODO: Should be defined by another function?
+    oversampling : int, optional
+        Oversampling factor used when shifting & re-sampling the PSF.
 
     Returns
     -------
@@ -128,7 +208,24 @@ def create_mock_galaxy_noiseless_image(galaxy_sim_data_raw,
      Note, this function is a quick mock generator using gunagala's PSF
      infrastructure to drop in simulation data as "stars" into an image.
      To derive the PSF, it is assumed that the galaxy is in the centre.
-        """
+
+    Deleted Parameters
+    ------------------
+    sim_arcsec_pixel : astropy.units.Quantity
+        Pixel scale (angle/pixel) of psf_data.
+    imager_filter : str, optional
+        Optical filter name.
+    total_mag : float, optional
+        Total apparent ABmag of the simulated object in determined band.
+        TODO: Should be defined by another function?
+    """
+
+    # restoring configuration data.
+    sim_arcsec_pixel = config['pixel_scale']
+    galaxy_coordinates = config['galaxy_coordinates']
+    observation_time = config['observation_time']
+    imager_filter = config['imager_filter']
+    total_mag = config['total_mag']
 
     sim_arcsec_pixel = ensure_unit(sim_arcsec_pixel,
                                    u.arcsec / u.pixel)
@@ -150,7 +247,7 @@ def create_mock_galaxy_noiseless_image(galaxy_sim_data_raw,
                                                    obs_time=observation_time,
                                                    filter_name=imager_filter,
                                                    stars=[(galaxy_coordinates,
-                                                           total_mag)])
+                                                           total_mag.value)])
 
     return mock_image_array
 
@@ -270,7 +367,27 @@ conversion error: {}".format(error)
     return stacked_image
 
 
-def compute_pixel_scale(distance=10.,
+def compute_redshift(distance):
+    """
+    This function computes redshift for the provided distance.
+
+    Parameters
+    ----------
+    distance : float
+        The provided distance.
+
+    Returns
+    -------
+    float
+        The computed redshift.
+    """
+    distance = ensure_unit(distance, u.Mpc)
+    d = Distance(distance)
+    z = d.compute_z(cosmo)
+    return z
+
+
+def compute_pixel_scale(z,
                         sim_pc_pixel=170):
     """
     This function produces pixel scales for the main functions
@@ -278,9 +395,8 @@ def compute_pixel_scale(distance=10.,
 
     Parameters
     ----------
-    distance : float, optional
-        The assumed distance between the telescope and the simulated galaxy
-        in Mpc units.
+    z : float
+        The redshift of the target galaxy at the demanded distance.
     sim_pc_pixel : astropy.units, optional
         The resolution of the simulation in parsec/pixel units.
 
@@ -290,12 +406,82 @@ def compute_pixel_scale(distance=10.,
         Pixel scale that will be used by other function of mocks.py.
     """
     sim_pc_pixel = ensure_unit(sim_pc_pixel, u.parsec / u.pixel)
-    d = Distance(distance * u.Mpc)
-    z = d.compute_z(cosmo)
-    angular_pc = cosmo.kpc_proper_per_arcmin(z).to(u.parsec / u.arcsec)
-    image_arcsec_pixel = sim_pc_pixel / angular_pc
+    proper_parsec_per_arcsec =\
+        cosmo.kpc_proper_per_arcmin(z).to(u.parsec / u.arcsec)
+    image_arcsec_pixel = sim_pc_pixel / proper_parsec_per_arcsec
 
     return image_arcsec_pixel
+
+
+def compute_total_mass(galaxy_sim_data_raw,
+                       particle_mass_sim,
+                       mass_factor=1e5,
+                       H=0.705):
+    """
+    With respect to input data, this function computes the total mass of the
+    favored object.
+
+    Parameters
+    ----------
+    galaxy_sim_data_raw : numpy.ndarray
+        A 2D array, representing the number particles in each pixel.
+    particle_mass_sim : float
+        The mass of one particle. The simulation information should provide
+        it.
+    mass_factor : float, optional
+        The factor that determines the  real mass of each particle, default
+        1e5.
+    H : float, optional
+        Hubble constant. The simulation information should provides it,
+        default 0.705.
+
+    Returns
+    -------
+    float
+        The total mass of the target galaxy and all masses in its environment.
+    """
+    p_mass = particle_mass_sim * mass_factor
+    galaxy_mass = np.sum(galaxy_sim_data_raw) * p_mass * H
+    return galaxy_mass
+
+
+def compute_apparent_ABmag(z,
+                           galaxy_mass,
+                           mass_to_light,
+                           abs_mag_sun):
+    """
+    This function computes the apparent magnitude of the target galaxy and its
+    environment with respect to the demanded distance.
+
+    Parameters
+    ----------
+    z : float
+        The redshift of the target galaxy at the demanded distance.
+    galaxy_mass : float
+        The total mass of the target galaxy and all masses in its environment
+        in solar mass units.
+    mass_to_light : float
+        The mass to light ratio of the target.
+
+    Returns
+    -------
+    float
+        The apparent magnitude of the target and its environment.
+    """
+    galaxy_mass = ensure_unit(galaxy_mass, u.M_sun)
+    mass_to_light = ensure_unit(mass_to_light, u.M_sun / u.L_sun)
+    abs_mag_sun = ensure_unit(abs_mag_sun, u.ABmag)
+    # Total luminosity of the simulated galaxy in solar luminosities,
+    # integrated over the filter band.
+    total_lum_sim = galaxy_mass / mass_to_light
+    # Total absolute ABmag of the simulated galaxy in the demanded band.
+    absolute_ABmag =\
+        (abs_mag_sun.value - 2.5 * np.log10(total_lum_sim.value)) * u.ABmag
+    # Distance modulus at redshift `z`.
+    distance_modulus = cosmo.distmod(z)
+
+    apparent_mag = absolute_ABmag + distance_modulus
+    return apparent_mag
 
 
 def other_axes(axis_name):
