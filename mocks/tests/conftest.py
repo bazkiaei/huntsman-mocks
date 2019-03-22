@@ -19,10 +19,10 @@ def galaxy_sim_data(sim_data_dir):
 
 
 @pytest.fixture
-def MAX_OUTLIER_FRACTION():
+def max_outlier_fraction():
     return 0.02
 
 
 @pytest.fixture
-def N_SIGMA():
+def n_sigma():
     return 3
