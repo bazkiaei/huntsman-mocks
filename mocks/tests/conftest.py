@@ -1,6 +1,8 @@
 import os
 import pytest
 
+import numpy as np
+
 from astropy.io import fits
 
 
@@ -16,6 +18,16 @@ def galaxy_sim_data(sim_data_dir):
     galaxy_sim = fits.open(fits_path)
     yield galaxy_sim[0].data
     galaxy_sim.close()
+
+
+@pytest.fixture
+def particle_positions_3D():
+    return (np.arange(1, 16, dtype=np.float).reshape(5, 3))
+
+
+@pytest.fixture
+def mass_weights():
+    return np.arange(1, 6, dtype=np.float)
 
 
 @pytest.fixture
