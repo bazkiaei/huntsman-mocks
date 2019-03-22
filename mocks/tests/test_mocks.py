@@ -209,8 +209,8 @@ def test_mock_image_stack_quantity_units(galaxy_sim_data,
 
 def test_mock_image_stack_compatible_units(galaxy_sim_data,
                                            huntsman_sbig_dark_imager,
-                                           N_SIGMA,
-                                           MAX_OUTLIER_FRACTION):
+                                           n_sigma,
+                                           max_outlier_fraction):
     data1 = galaxy_sim_data * u.electron / (u.pixel * u.second)
     data2 = galaxy_sim_data * 3600 * u.electron / (u.pixel * u.hour)
     stacked1 = mocks.mock_image_stack(data1, huntsman_sbig_dark_imager)
@@ -218,7 +218,7 @@ def test_mock_image_stack_compatible_units(galaxy_sim_data,
     assert np.mean(stacked1) == pytest.approx(np.mean(stacked2), rel=2)
     assert np.median(stacked1) == pytest.approx(np.median(stacked2), rel=2)
     difference_image = stacked1.subtract(stacked2)
-    pixels_different = abs(difference_image.data) > N_SIGMA * np.std(
+    pixels_different = abs(difference_image.data) > n_sigma * np.std(
         difference_image)
     assert np.count_nonzero(pixels_different) <\
-        MAX_OUTLIER_FRACTION * stacked1.size
+        max_outlier_fraction * stacked1.size
