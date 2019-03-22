@@ -71,6 +71,22 @@ def test_create_mock_galaxy_noiseless_image(huntsman_sbig_dark_imager):
     assert noiseless_image.flags is None
 
 
+def test_scale_light_by_distance(particle_positions_3D,
+                                 mass_weights):
+    positions, luminosity =\
+        mocks.scale_light_by_distance(particle_positions_3D,
+                                      mass_weights,
+                                      10,
+                                      4 * u.Mpc)
+    assert type(positions) == np.ndarray
+    assert type(luminosity) == u.Quantity
+    assert positions.shape == (5, 3)
+    assert luminosity.shape == (5,)
+    assert positions.max() == pytest.approx(19.060319816048057, rel=1e-12)
+    assert luminosity.value.max() == pytest.approx(2.047694415864918,
+                                                   1e-12)
+
+
 def test_convolve_image_psf(galaxy_sim_data,
                             pixelated_psf_data):
     convolved = mocks.convolve_image_psf(galaxy_sim_data,
@@ -162,6 +178,88 @@ def test_compute_apparent_ABmag():
                                                   5.11)
     assert apparent_ABmag.to(u.ABmag).value == pytest.approx(9.10466504537635,
                                                              rel=1e-12)
+
+
+def test_other_axes():
+    y, x = mocks.other_axes('z')
+    assert y == 1 and x == 2
+    z, x = mocks.other_axes('y')
+    assert z == 0 and x == 2
+    z, y = mocks.other_axes('x')
+    assert z == 0 and y == 1
+    y, x = mocks.other_axes('Z')
+    assert y == 1 and x == 2
+    z, x = mocks.other_axes('Y')
+    assert z == 0 and x == 2
+    z, y = mocks.other_axes('X')
+    assert z == 0 and y == 1
+    with pytest.raises(KeyError):
+        z, x = mocks.other_axes(1)
+    with pytest.raises(KeyError):
+        z, x = mocks.other_axes("wrong_string")
+
+
+def test_cut_data(particle_positions_3D,
+                  mass_weights):
+    data, weights = mocks.cut_data(particle_positions_3D,
+                                   mass_weights,
+                                   [2, 11],
+                                   [7, 16],
+                                   [0, 10])
+    assert data.shape == (1, 3)
+    assert data[0, 0] == 7
+    assert data[0, 1] == 8
+    assert data[0, 2] == 9
+    assert weights == 3
+
+
+def test_compute_correction_length():
+    correction_length = mocks.compute_correction_length(10, 25)
+    assert correction_length.unit == 'Mpc'
+    assert correction_length.value == pytest.approx(-15.023027612837932,
+                                                    rel=1e-12)
+
+
+def test_compute_depth_distance_to_observer(particle_positions_3D,
+                                            mass_weights):
+    data, weights =\
+        mocks.compute_depth_distance_to_observer(particle_positions_3D,
+                                                 mass_weights,
+                                                 -5)
+    assert data.shape == (3, 3)
+    assert weights.shape == (3,)
+    assert data[0, 0] == 2
+    assert np.median(data) == 9
+
+
+def test_convert_to_lumonsity_distance(particle_positions_3D):
+    data = mocks.convert_to_lumonsity_distance(particle_positions_3D,
+                                               'z')
+    assert type(data) == u.Quantity
+    assert data.shape == particle_positions_3D.shape
+    assert data[0, 0].value == 1.000231238130914
+    assert np.median(data[:, 0]).value == 7.011334201935506
+    assert np.mean(data[:, 0]).value == 7.015500264430392
+
+
+def test_project_3D_to_2D(particle_positions_3D,
+                          mass_weights):
+    projected_data, x_bins, y_bins =\
+        mocks.project_3D_to_2D(particle_positions_3D,
+                               mass_weights,
+                               bin_size=1. * u.kpc,
+                               x_range=[0, 15] * u.kpc,
+                               y_range=[0, 15] * u.kpc)
+    assert projected_data.shape == (15, 15)
+    assert projected_data[14, 14] == 5
+    assert np.median(projected_data) == 0
+    assert x_bins.shape == (16,) and y_bins.shape == (16,)
+    assert np.median(x_bins.value) == 7.5 and np.median(y_bins.value) == 7.5
+
+
+def test_AxisNumber():
+    assert mocks.AxisNumber.x == 2
+    assert mocks.AxisNumber['z'] == 0
 
 
 def test_mock_image_stack_input_units(galaxy_sim_data,
