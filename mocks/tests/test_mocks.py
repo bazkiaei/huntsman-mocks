@@ -4,6 +4,7 @@ import numpy as np
 
 import astropy.units as u
 from astropy.nddata import CCDData, NDData
+from astropy import cosmology
 
 from gunagala import imager
 
@@ -39,10 +40,10 @@ def test_prepare_mocks():
     assert mocks_config['observation_time'] == '2018-04-12T08:00'
     assert mocks_config['imager_filter'] == 'g'
     assert mocks_config['pixel_scale'].to(u.arcsec / u.pixel).value ==\
-        pytest.approx(3.5227069721693924,
+        pytest.approx(3.5066653104752303,
                       rel=1e-12)
     assert mocks_config['total_mag'].to(u.ABmag).value == pytest.approx(
-        9.10466504537635,
+        9.104665836872826,
         rel=1e-12)
 
 
@@ -54,17 +55,17 @@ def test_create_mock_galaxy_noiseless_image(huntsman_sbig_dark_imager):
                                                  huntsman_sbig_dark_imager)
     assert isinstance(noiseless_image, CCDData)
     assert noiseless_image.data.shape == (3326, 2504)
-    assert noiseless_image.data.min() == pytest.approx(1.274705830156097,
+    assert noiseless_image.data.min() == pytest.approx(1.2747058301560972,
                                                        rel=1e-12)
-    assert noiseless_image.data.max() == pytest.approx(61.909652519566656,
+    assert noiseless_image.data.max() == pytest.approx(62.09232872700726,
                                                        rel=1e-12)
-    assert np.mean(noiseless_image) == pytest.approx(1.2776798645535397,
+    assert np.mean(noiseless_image) == pytest.approx(1.277679621493674,
                                                      rel=1e-12)
-    assert np.median(noiseless_image) == pytest.approx(1.274705830156097,
+    assert np.median(noiseless_image) == pytest.approx(1.2747058301560972,
                                                        rel=1e-12)
-    assert noiseless_image.data.sum() == pytest.approx(10640906.326680703,
+    assert noiseless_image.data.sum() == pytest.approx(10640904.302404253,
                                                        rel=1e-8)
-    assert np.std(noiseless_image) == pytest.approx(0.11920044545602064,
+    assert np.std(noiseless_image) == pytest.approx(0.11971996853424458,
                                                     rel=1e-12)
     assert noiseless_image.unit == "electron / (pix s)"
     assert noiseless_image.uncertainty is None
@@ -82,9 +83,9 @@ def test_scale_light_by_distance(particle_positions_3D,
     assert type(luminosity) == u.Quantity
     assert positions.shape == (5, 3)
     assert luminosity.shape == (5,)
-    assert positions.max() == pytest.approx(19.060319816048057, rel=1e-12)
-    assert luminosity.value.max() == pytest.approx(2.047694415864918,
-                                                   1e-12)
+    assert positions.max() == pytest.approx(18.999980867240506, rel=1e-12)
+    assert luminosity.value.max() == pytest.approx(2.0407101,
+                                                   1e-6)
 
 
 def test_convolve_image_psf(galaxy_sim_data,
@@ -320,3 +321,11 @@ def test_mock_image_stack_compatible_units(galaxy_sim_data,
         difference_image)
     assert np.count_nonzero(pixels_different) <\
         max_outlier_fraction * stacked1.size
+
+
+def test_create_cosmology(custom_cosmology_data):
+    cosmo = mocks.create_cosmology(custom_cosmology_data)
+    assert type(cosmo) == cosmology.core.FlatLambdaCDM
+    assert cosmo.H0.value == 70.
+    assert cosmo.Tcmb0.value == 2.5
+    assert cosmo.Om0 == 0.2865
