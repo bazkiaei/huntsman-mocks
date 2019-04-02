@@ -1,7 +1,3 @@
-import os
-
-import yaml
-
 import numpy as np
 
 import time
@@ -14,13 +10,15 @@ from astropy.cosmology import WMAP9 as cosmo
 from astropy.coordinates import Distance
 from astropy.convolution import convolve
 from astropy.nddata import CCDData
-from astropy.io import fits
 from astropy import cosmology
+from astropy.io import fits
 
 import ccdproc
 
 import gunagala
 from gunagala.utils import ensure_unit
+
+from mocks.utils import load_yaml_config
 
 
 def scale_light_by_distance(particle_positions,
@@ -110,10 +108,6 @@ def prepare_mocks(config_location='config_example.yaml',
 
     Parameters
     ----------
-    observation_time : astropy.time.Time or str, optional
-        The date and time of the observation, default 2018-04-12T08:00.
-    galaxy_coordinates : astropy.coordinates.SkyCoord, optional
-        Coordinates of the object, default 14h40m56.435s -60d53m48.3s.
     config_location : str, optional
         The name (location) of the yaml file that contains initial
         information, default `config_example.yaml`.
@@ -124,25 +118,8 @@ def prepare_mocks(config_location='config_example.yaml',
     galaxy_sim_data_raw : numpy.array
         Prepared information for creating mock images and the simulation data.
     """
-    if os.path.exists(config_location):
-        # Got a direct path to the file, either relative or absolute,
-        # use as is.
-        config_path = config_location
-    else:
-        # Not a direct path to the file, try adding default config location to
-        # the path
-        config_path = os.path.normpath(os.path.join(os.path.dirname(__file__),
-                                                    '../config_directory',
-                                                    config_location))
-    try:
-        with open(config_path) as config_file:
-            config = yaml.load(config_file)
-    except OSError as err:
-        msg = "Error opening config file '{}': {}".format(config_path, err)
-        raise OSError(msg)
-    except yaml.YAMLError as err:
-        msg = "Error loading config from '{}': {}".format(config_path, err)
-        raise yaml.YAMLError(msg)
+    # Loading configuration file:
+    config = load_yaml_config(config_location)
     config['galaxy_coordinates'] =\
         kwargs.get('galaxy_coordinates',
                    config.get('galaxy_coordinates',
@@ -157,7 +134,6 @@ def prepare_mocks(config_location='config_example.yaml',
     config['pixel_scale'] = compute_pixel_scale(z,
                                                 config['sim_pc_\
 pixel'])
-
     # Reading the data.
     with fits.open(config['data_path']) as sim_fits:
         galaxy_sim_data_raw = sim_fits[0].data
@@ -279,7 +255,6 @@ def convolve_image_psf(input_data,
     provided by user. It uses the PSF as kernel for astropy.convolve, which
     only accepts kernels with odd shapes. In addition, the function normalizes
     the PSF.
-
     """
     # check the input data to be CCDData type and convert to it if it is not.
     try:
@@ -335,6 +310,12 @@ def mock_image_stack(input_image,
         This function is using the `gunagala.Imager.make_image_real` method to
         create simulated images. Check the gunagala package for further
         information.
+
+    Raises
+    ------
+    u.UnitsError
+        If the units of the input_image is not compatible this erroe will
+        raise.
     """
     # measuring the time for stacking images.
     start_time = time.time()
@@ -499,12 +480,6 @@ def other_axes(axis_name):
     tuple
         Two other axes than the input in sequential order with respect to the
         Numpy axis ordering.
-
-    Raises
-    ------
-    ValueError
-        The input (viewing_axis) should be one of 'x', 'y', 'z', 'X', 'Y',
-        'Z', otherwise the error will be raised.
 
     Notes
     -----
