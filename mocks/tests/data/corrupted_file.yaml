@@ -1,0 +1,40 @@
+# This is here as an example of a config file with a syntax error in it, for
+# testing purposes only.
+
+# Coordinates of the object.
+galaxy_coordinates: '14h40m56.435s -60d53m48.3s'
+
+# The date and time of the observation.
+observation_time: '2018-04-12T08:00'
+
+# Path to the fits file of simulation data.
+data_path: 'sim_data/cl19.fits'
+
+# This is where the user chooses the filter of the imager
+imager_filter: 'g'
+
+# The mass to light ratio for different filters in (M_Sun / L_Sun).
+mass_to_light_ratio:
+    g: 5
+    r: 5
+
+# Absolute magnitude os the Sun for different filters.
+# http://mips.as.arizona.edu/~cnaw/sun.html
+abs_mag_sun:
+  g: 5.11
+  r: 4.68
+  i: 4.53
+# The luminosity distance between the observer and the target galaxy.
+galaxy_distance 10.
+
+# The resolution of the simulation(parsec / pixel).
+sim_pc_pixel: 170 
+
+# The baryonic mass of simulation particles (1e5 * Msol/h).
+particle_baryonic_mass_sim: 9.6031355
+
+# Cosmological parameters.
+hubble_constant: 0.705  # (Km/s)/Mpc
+Omega_Lambda: 0.727
+Omega_0: 0.273
+redshift: 0
