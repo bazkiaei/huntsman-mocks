@@ -5,8 +5,8 @@ import time
 import enum
 
 import astropy.units as u
-from astropy.cosmology import WMAP9 as cosmo
-
+from astropy.cosmology import WMAP9
+from astropy.cosmology import FlatLambdaCDM
 from astropy.coordinates import Distance
 from astropy.convolution import convolve
 from astropy.nddata import CCDData
@@ -25,7 +25,8 @@ def scale_light_by_distance(particle_positions,
                             particle_values,
                             physical_distance=10 * u.Mpc,
                             target_galaxy_comoving_depth=1 * u.Mpc,
-                            viewing_axis='z'):
+                            viewing_axis='z',
+                            config_location='config_example.yaml'):
     """
     Projecting 3D data to 2D data with respect to the depth of particles.
 
@@ -35,6 +36,9 @@ def scale_light_by_distance(particle_positions,
         The 3D position of particles, simulations output.
     particle_values : numpy.ndarray
         The luminosity of particles from simulations.
+    config_location : str, optional
+        The name (location) of the yaml file that contains initial
+        information, default `config_example.yaml`.
     physical_distance : astropy.units.Quantity, optional
         Distance between the observer and the target galaxy. It should be
         luminosity (physical) distance. Any units are accepted.
@@ -78,9 +82,12 @@ def scale_light_by_distance(particle_positions,
     # Computing the length value that should be added to the positions of
     # particles in the viewing axis (projection axis) as correction.
     physical_distance = ensure_unit(physical_distance, u.Mpc)
+    config = load_yaml_config(config_location)
+    cosmo = create_cosmology(config)
     comoving_correction_length = \
         compute_correction_length(physical_distance,
-                                  target_galaxy_comoving_depth)
+                                  target_galaxy_comoving_depth,
+                                  cosmo)
     # Computing the distance of all particles to the observer.
     # The particles positions in GNESIS Simulations are in Mpc units.
     particle_positions, particle_values =\
@@ -91,7 +98,8 @@ def scale_light_by_distance(particle_positions,
             viewing_axis=viewing_axis)
     # Converting co-moving distances to luminosity distances.
     particle_positions = convert_to_lumonsity_distance(particle_positions,
-                                                       viewing_axis)
+                                                       viewing_axis,
+                                                       cosmo)
     # Applying corrections to the mass weights of particles.
     particle_values =\
         particle_values / (particle_positions[:, AxisNumber[
@@ -128,10 +136,16 @@ def prepare_mocks(config_location='config_example.yaml',
         kwargs.get('observation_time',
                    config.get('observation_time',
                               '2018-04-12T08:00'))
-    z = compute_redshift(config['galaxy_distance'])
+
+    # Creating the cosmology
+    cosmo = create_cosmology(config)
+
+    z = compute_redshift(config['galaxy_distance'],
+                         cosmo)
 
     # Computing the pixel scale.
     config['pixel_scale'] = compute_pixel_scale(z,
+                                                cosmo,
                                                 config['sim_pc_\
 pixel'])
     # Reading the data.
@@ -152,7 +166,8 @@ pixel'])
     total_apparent_ABmag_sim = compute_apparent_ABmag(z,
                                                       galaxy_mass,
                                                       mass_to_light,
-                                                      abs_mag_sun)
+                                                      abs_mag_sun,
+                                                      cosmo)
 
     config['total_mag'] = total_apparent_ABmag_sim
 
@@ -348,7 +363,8 @@ conversion error: {}".format(error)
     return stacked_image
 
 
-def compute_redshift(distance):
+def compute_redshift(distance,
+                     cosmo=WMAP9):
     """
     This function computes redshift for the provided distance.
 
@@ -369,6 +385,7 @@ def compute_redshift(distance):
 
 
 def compute_pixel_scale(z,
+                        cosmo=WMAP9,
                         sim_pc_pixel=170):
     """
     This function produces pixel scales for the main functions
@@ -429,7 +446,8 @@ def compute_total_mass(galaxy_sim_data_raw,
 def compute_apparent_ABmag(z,
                            galaxy_mass,
                            mass_to_light,
-                           abs_mag_sun):
+                           abs_mag_sun,
+                           cosmo=WMAP9):
     """
     This function computes the apparent magnitude of the target galaxy and its
     environment with respect to the demanded distance.
@@ -543,7 +561,8 @@ def cut_data(particle_positions,
 
 
 def compute_correction_length(distance,
-                              target_galaxy_comoving_depth):
+                              target_galaxy_comoving_depth,
+                              cosmo=WMAP9):
     """
     This function computes the correction that should be added to the position
     of the particles along the projection axis.
@@ -643,7 +662,8 @@ def compute_depth_distance_to_observer(particle_positions,
 
 
 def convert_to_lumonsity_distance(particle_positions,
-                                  viewing_axis):
+                                  viewing_axis,
+                                  cosmo=WMAP9):
     """
     This function converts the co-moving distance to the luminosity distance.
 
@@ -721,6 +741,47 @@ def project_3D_to_2D(particle_positions,
                                                  bins=(yedges, xedges),
                                                  weights=particle_values)
     return particle_positions_2D, x * u.kpc, y * u.kpc
+
+
+def create_cosmology(custom_cosmology_parameters,
+                     default_cosmology=WMAP9):
+    """
+    Customizes the cosmology parameters.
+
+    Parameters
+    ----------
+    custom_cosmology_parameters : dict
+        Contains preferred cosmology parameters.
+    default_cosmology : astropy.cosmology.core.FlatLambdaCDM, optional
+        The main cosmology, default WMAP9.
+
+    Returns
+    -------
+    astropy.cosmology.core.FlatLambdaCDM
+        Customized cosmology.
+
+    Notes
+    -----
+        This function creates a flat Lambda CDM cosmology using the
+        hubble_constant, Omega_0, T_CMB0, N_eff, mass_nu and Omega_b0
+        parameters from custom_cosmology_parameters and for parameters
+        that aren't in custom_cosmology_parameters, from default_cosmology.
+    """
+    H0 = custom_cosmology_parameters.get('hubble_constant',
+                                         default_cosmology.H0)
+    H0 = ensure_unit(H0, u.km / (u.s * u.Mpc))
+    Om0 = custom_cosmology_parameters.get('Omega_0', default_cosmology.Om0)
+    Tcmb0 = custom_cosmology_parameters.get('T_CMB0', default_cosmology.Tcmb0)
+    Neff = custom_cosmology_parameters.get('N_eff', default_cosmology.Neff)
+    m_nu = custom_cosmology_parameters.get('mass_nu', default_cosmology.m_nu)
+    Ob0 = custom_cosmology_parameters.get('Omega_b0', default_cosmology.Ob0)
+    cosmology = FlatLambdaCDM(H0,
+                              Om0,
+                              Tcmb0,
+                              Neff,
+                              m_nu,
+                              Ob0)
+    return cosmology
 
 
 class AxisNumber(enum.IntEnum):
