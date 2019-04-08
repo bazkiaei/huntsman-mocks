@@ -743,31 +743,38 @@ def project_3D_to_2D(particle_positions,
     return particle_positions_2D, x * u.kpc, y * u.kpc
 
 
-def create_cosmology(costum_cosmology_parameters,
+def create_cosmology(custom_cosmology_parameters,
                      default_cosmology=WMAP9):
     """
     Customizes the cosmology parameters.
 
     Parameters
     ----------
-    costum_cosmology_parameters : dict
+    custom_cosmology_parameters : dict
         Contains preferred cosmology parameters.
-    default_cosmology : TYPE, optional
+    default_cosmology : astropy.cosmology.core.FlatLambdaCDM, optional
         The main cosmology, default WMAP9.
 
     Returns
     -------
     astropy.cosmology.core.FlatLambdaCDM
         Customized cosmology.
+
+    Notes
+    -----
+        This function creates a flat Lambda CDM cosmology using the
+        hubble_constant, Omega_0, T_CMB0, N_eff, mass_nu and Omega_b0
+        parameters from custom_cosmology_parameters and for parameters
+        that aren't in custom_cosmology_parameters, from default_cosmology.
     """
-    H0 = costum_cosmology_parameters.get('hubble_constant',
+    H0 = custom_cosmology_parameters.get('hubble_constant',
                                          default_cosmology.H0)
     H0 = ensure_unit(H0, u.km / (u.s * u.Mpc))
-    Om0 = costum_cosmology_parameters.get('Omega_0', default_cosmology.Om0)
-    Tcmb0 = costum_cosmology_parameters.get('T_CMB0', default_cosmology.Tcmb0)
-    Neff = costum_cosmology_parameters.get('N_eff', default_cosmology.Neff)
-    m_nu = costum_cosmology_parameters.get('mass_nu', default_cosmology.m_nu)
-    Ob0 = costum_cosmology_parameters.get('Omega_b0', default_cosmology.Ob0)
+    Om0 = custom_cosmology_parameters.get('Omega_0', default_cosmology.Om0)
+    Tcmb0 = custom_cosmology_parameters.get('T_CMB0', default_cosmology.Tcmb0)
+    Neff = custom_cosmology_parameters.get('N_eff', default_cosmology.Neff)
+    m_nu = custom_cosmology_parameters.get('mass_nu', default_cosmology.m_nu)
+    Ob0 = custom_cosmology_parameters.get('Omega_b0', default_cosmology.Ob0)
     cosmology = FlatLambdaCDM(H0,
                               Om0,
                               Tcmb0,
