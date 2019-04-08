@@ -38,3 +38,11 @@ def max_outlier_fraction():
 @pytest.fixture
 def n_sigma():
     return 3
+
+
+@pytest.fixture
+def custom_cosmology_data():
+    custom_data = dict()
+    custom_data['hubble_constant'] = 70.
+    custom_data['T_CMB0'] = 2.5
+    return custom_data
