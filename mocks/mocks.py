@@ -15,10 +15,37 @@ from astropy.io import fits
 
 import ccdproc
 
+import pynbody
+
 import gunagala
 from gunagala.utils import ensure_unit
 
 from mocks.utils import load_yaml_config
+
+
+def read_gadget(data_path):
+    """
+    Reads the raw output of simulations based on gadget code.
+
+    Parameters
+    ----------
+    data_path : str
+        The path to the data.
+
+    Returns
+    -------
+    particle_pos: pynbody.array.SimArray
+        The positions of the simulation particles (only stars at ghe mometnt).
+    particle_value: pynbody.array.SimArray
+        The mass of the simulation particles (only stars at ghe mometnt).
+    sim_properties: pynbody.simdict.SimDict
+        Contains cosmological information of the simulation.
+    """
+    sim_data = pynbody.load(data_path)
+    particle_pos = sim_data.stars['pos'].in_units('Mpc')
+    particle_value = sim_data.stars['mass'].in_units('Msol')
+    sim_properties = sim_data.properties
+    return particle_pos, particle_value, sim_properties
 
 
 def scale_light_by_distance(particle_positions,

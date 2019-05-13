@@ -8,6 +8,8 @@ from astropy import cosmology
 
 from gunagala import imager
 
+import pynbody
+
 from mocks import mocks
 
 
@@ -32,6 +34,18 @@ def pixelated_psf_data(huntsman_sbig_dark_imager):
     psf_data = huntsman_sbig_dark_imager.psf.pixellated(size=(5, 5),
                                                         offsets=(0, 0))
     return psf_data
+
+
+def test_read_gadget(gadget_data_path):
+    pos, mass, info = mocks.read_gadget(gadget_data_path)
+    assert isinstance(pos, pynbody.array.SimArray)
+    assert isinstance(mass, pynbody.array.SimArray)
+    assert isinstance(info, pynbody.simdict.SimDict)
+    assert pos.units == 'Mpc'
+    assert mass.units == 'Msol'
+    assert pos.shape == (39, 3)
+    assert mass.shape == (39,)
+    assert info['h'] == 0.71
 
 
 def test_prepare_mocks():
