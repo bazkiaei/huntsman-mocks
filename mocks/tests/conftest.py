@@ -46,3 +46,9 @@ def custom_cosmology_data():
     custom_data['hubble_constant'] = 70.
     custom_data['T_CMB0'] = 2.5
     return custom_data
+
+
+@pytest.fixture
+def gadget_data_path(sim_data_dir):
+    gadget_path = os.path.join(sim_data_dir, 'test_g2_snap')
+    return gadget_path
