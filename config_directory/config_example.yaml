@@ -18,23 +18,38 @@ mass_to_light_ratio:
     g: 5
     r: 5
 
-# Absolute magnitude os the Sun for different filters.
+# Absolute magnitude of the Sun for different filters.
 # http://mips.as.arizona.edu/~cnaw/sun.html
 abs_mag_sun:
   g: 5.11
   r: 4.68
   i: 4.53
-# The luminosity distance between the observer and the target galaxy.
+# The luminosity distance between the observer and the target galaxy in Mpc.
 galaxy_distance: 10.
 
+# The position of the target galaxy along the projection direction in the
+# simulation box. Since it is coming from simulations, it is co-moving
+# distance in Mpc.
+target_galaxy_comoving_depth: 1.
+
+# The projection direction. The user should choose among 'x', 'y', 'z', 'X',
+# 'Y', 'Z'.
+viewing_axis: 'z'
+
 # The resolution of the simulation(parsec / pixel).
-sim_pc_pixel: 170 
+sim_pc_pixel: 170
 
 # The baryonic mass of simulation particles (1e5 * Msol/h).
 particle_baryonic_mass_sim: 9.6031355
 
-# Cosmological parameters.
-hubble_constant: 0.705  # (Km/s)/Mpc
-Omega_Lambda: 0.727
-Omega_0: 0.273
 redshift: 0
+
+# Cosmological parameters, WMAP9 as default. These should map onto
+# astropy.cosmology.
+hubble_constant: .693
+Omega_0: 0.286
+Omega_b: 0.04
+Omega_Lambda: 0.727
+T_CMB0: 2.725
+Neff: 3.04
+m_nu: [0., 0., 0.]

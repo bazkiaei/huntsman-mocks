@@ -5,6 +5,8 @@ import numpy as np
 
 from astropy.io import fits
 
+from mocks.utils import load_yaml_config
+
 
 @pytest.fixture(scope='module')
 def sim_data_dir():
@@ -46,6 +48,11 @@ def custom_cosmology_data():
     custom_data['hubble_constant'] = 70.
     custom_data['T_CMB0'] = 2.5
     return custom_data
+
+
+@pytest.fixture(scope='module')
+def configuration():
+    return load_yaml_config('config_example.yaml')
 
 
 @pytest.fixture
