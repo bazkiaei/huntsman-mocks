@@ -43,7 +43,9 @@ def read_gadget(data_path):
     """
     sim_data = pynbody.load(data_path)
     particle_pos = sim_data.stars['pos'].in_units('Mpc')
+    particle_pos = particle_pos.astype(np.float64)
     particle_value = sim_data.stars['mass'].in_units('Msol')
+    particle_value = particle_value.astype(np.float64)
     sim_properties = sim_data.properties
     return particle_pos, particle_value, sim_properties
 
