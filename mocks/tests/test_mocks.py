@@ -46,6 +46,8 @@ def test_read_gadget(gadget_data_path):
     assert pos.shape == (39, 3)
     assert mass.shape == (39,)
     assert info['h'] == 0.71
+    assert pos.dtype == np.float64
+    assert mass.dtype == np.float64
 
 
 def test_prepare_mocks():
