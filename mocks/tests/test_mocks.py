@@ -36,6 +36,88 @@ def pixelated_psf_data(huntsman_sbig_dark_imager):
     return psf_data
 
 
+def test_load_configuration(configuration):
+    assert configuration['data_path'] == 'sim_data/cl19.fits'
+    assert configuration['galaxy_distance'] == 10.
+    assert isinstance(configuration, dict)
+
+
+def test_parse_config():
+    config = mocks.parse_config()
+    assert isinstance(config, dict)
+    assert config['galaxy_coordinates'] == '14h40m56.435s -60d53m48.3s'
+    assert config['observation_time'] == '2018-04-12T08:00'
+    assert config['data_path'] == 'sim_data/cl19.fits'
+    assert config['imager_filter'] == 'g'
+    assert config['mass_to_light_ratio'] == {'g': 5, 'r': 5}
+    assert config['abs_mag_sun'] == {'g': 5.11, 'r': 4.68, 'i': 4.53}
+    assert config['galaxy_distance'].value == 10.
+    assert config['galaxy_distance'].unit == u.Mpc
+    assert config['target_galaxy_comoving_depth'].value == 1.
+    assert config['target_galaxy_comoving_depth'].unit == u.Mpc
+    assert config['viewing_axis'] == 'z'
+    assert config['sim_pc_pixel'].value == 170.
+    assert config['sim_pc_pixel'].unit == u.pc / u.pixel
+    assert config['particle_baryonic_mass_sim'] == 9.6031355
+    assert config['hubble_constant'].value == 69.3
+    assert config['hubble_constant'].unit == u.km / (u.Mpc * u.s)
+    assert config['Omega_0'] == 0.286
+    assert config['Omega_b'] == 0.04
+    assert config['Omega_Lambda'] == 0.714
+    assert config['T_CMB0'].value == 2.725
+    assert config['T_CMB0'].unit == u.K
+    assert config['Neff'] == 3.04
+    assert config['m_nu'][2].value == 0.
+    assert config['m_nu'].unit == u.eV
+
+
+def test_parse_config_kwargs():
+    config = mocks.parse_config(
+        galaxy_coordinates='00h00m00.0s 0d00m0.0s',
+        observation_time='2019-04-12T08:00',
+        data_path='sim_data/cl20.fits',
+        imager_filter='r',
+        mass_to_light_ratio={'g': 5.5, 'r': 5.5},
+        abs_mag_sun={'g': 5., 'r': 4., 'i': 4.5},
+        galaxy_distance=8,
+        target_galaxy_comoving_depth=2,
+        viewing_axis='x',
+        sim_pc_pixel=120,
+        particle_baryonic_mass_sim=8,
+        hubble_constant=71,
+        Omega_0=0.3,
+        Omega_b=0.05,
+        Omega_Lambda=0.7,
+        T_CMB0=2.8,
+        Neff=3.02,
+        m_nu=[1, 1, 1])
+    assert isinstance(config, dict)
+    assert config['galaxy_coordinates'] == '00h00m00.0s 0d00m0.0s'
+    assert config['observation_time'] == '2019-04-12T08:00'
+    assert config['data_path'] == 'sim_data/cl20.fits'
+    assert config['imager_filter'] == 'r'
+    assert config['mass_to_light_ratio'] == {'g': 5.5, 'r': 5.5}
+    assert config['abs_mag_sun'] == {'g': 5., 'r': 4., 'i': 4.5}
+    assert config['galaxy_distance'].value == 8.
+    assert config['galaxy_distance'].unit == u.Mpc
+    assert config['target_galaxy_comoving_depth'].value == 2.
+    assert config['target_galaxy_comoving_depth'].unit == u.Mpc
+    assert config['viewing_axis'] == 'x'
+    assert config['sim_pc_pixel'].value == 120.
+    assert config['sim_pc_pixel'].unit == u.pc / u.pixel
+    assert config['particle_baryonic_mass_sim'] == 8.
+    assert config['hubble_constant'].value == 71.
+    assert config['hubble_constant'].unit == u.km / (u.Mpc * u.s)
+    assert config['Omega_0'] == 0.3
+    assert config['Omega_b'] == 0.05
+    assert config['Omega_Lambda'] == 0.7
+    assert config['T_CMB0'].value == 2.8
+    assert config['T_CMB0'].unit == u.K
+    assert config['Neff'] == 3.02
+    assert config['m_nu'].value.all() == 1
+    assert config['m_nu'].unit == u.eV
+
+
 def test_read_gadget(gadget_data_path):
     pos, mass, info = mocks.read_gadget(gadget_data_path)
     assert isinstance(pos, pynbody.array.SimArray)
@@ -50,21 +132,22 @@ def test_read_gadget(gadget_data_path):
     assert mass.dtype == np.float64
 
 
-def test_prepare_mocks():
-    mocks_config, data = mocks.prepare_mocks()
+def test_prepare_mocks(configuration):
+    mocks_config, data = mocks.prepare_mocks(configuration)
     assert mocks_config['galaxy_coordinates'] == '14h40m56.435s -60d53m48.3s'
     assert mocks_config['observation_time'] == '2018-04-12T08:00'
     assert mocks_config['imager_filter'] == 'g'
     assert mocks_config['pixel_scale'].to(u.arcsec / u.pixel).value ==\
-        pytest.approx(3.5066653104752303,
+        pytest.approx(3.506664448419332,
                       rel=1e-12)
     assert mocks_config['total_mag'].to(u.ABmag).value == pytest.approx(
-        9.104665836872826,
+        9.12330433833332,
         rel=1e-12)
 
 
-def test_create_mock_galaxy_noiseless_image(huntsman_sbig_dark_imager):
-    config, galaxy_sim_data = mocks.prepare_mocks()
+def test_create_mock_galaxy_noiseless_image(huntsman_sbig_dark_imager,
+                                            configuration):
+    config, galaxy_sim_data = mocks.prepare_mocks(configuration)
     noiseless_image = \
         mocks.create_mock_galaxy_noiseless_image(config,
                                                  galaxy_sim_data,
@@ -73,15 +156,15 @@ def test_create_mock_galaxy_noiseless_image(huntsman_sbig_dark_imager):
     assert noiseless_image.data.shape == (3326, 2504)
     assert noiseless_image.data.min() == pytest.approx(1.2747058301560972,
                                                        rel=1e-12)
-    assert noiseless_image.data.max() == pytest.approx(62.09232872700726,
+    assert noiseless_image.data.max() == pytest.approx(61.057191738173756,
                                                        rel=1e-12)
-    assert np.mean(noiseless_image) == pytest.approx(1.277679621493674,
+    assert np.mean(noiseless_image) == pytest.approx(1.2776290071962388,
                                                      rel=1e-12)
     assert np.median(noiseless_image) == pytest.approx(1.2747058301560972,
                                                        rel=1e-12)
-    assert noiseless_image.data.sum() == pytest.approx(10640904.302404253,
+    assert noiseless_image.data.sum() == pytest.approx(10640482.771148466,
                                                        rel=1e-8)
-    assert np.std(noiseless_image) == pytest.approx(0.11971996853424458,
+    assert np.std(noiseless_image) == pytest.approx(0.11768233792504638,
                                                     rel=1e-12)
     assert noiseless_image.unit == "electron / (pix s)"
     assert noiseless_image.uncertainty is None
@@ -89,18 +172,18 @@ def test_create_mock_galaxy_noiseless_image(huntsman_sbig_dark_imager):
 
 
 def test_scale_light_by_distance(particle_positions_3D,
-                                 mass_weights):
+                                 mass_weights,
+                                 configuration):
     positions, luminosity =\
         mocks.scale_light_by_distance(particle_positions_3D,
                                       mass_weights,
-                                      10,
-                                      4 * u.Mpc)
+                                      configuration)
     assert type(positions) == np.ndarray
     assert type(luminosity) == u.Quantity
     assert positions.shape == (5, 3)
     assert luminosity.shape == (5,)
-    assert positions.max() == pytest.approx(18.999980867240506, rel=1e-12)
-    assert luminosity.value.max() == pytest.approx(2.0407101,
+    assert positions.max() == pytest.approx(22.000885907655896, rel=1e-12)
+    assert luminosity.value.max() == pytest.approx(1.18340324,
                                                    1e-6)
 
 

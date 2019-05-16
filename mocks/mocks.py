@@ -23,6 +23,115 @@ from gunagala.utils import ensure_unit
 from mocks.utils import load_yaml_config
 
 
+def parse_config(config_file='config_example.yaml',
+                 **kwargs):
+    """
+    Parses the configuration.
+
+    Parameters
+    ----------
+    config_file : str, optional
+        The path to the configuration file or its name if it is in the folder
+        `config_directory` of `huntsman_mocks`.
+    **kwargs
+        The user can override the value of a quantity from the configuration
+        file and give another value to that quantity by kwargs.
+
+    Returns
+    -------
+    dict
+        A dictionary that contains configuration.
+
+    Notes
+    -----
+        This function loads the configuration file with
+        `utils.load_yaml_config`, then goes through all the parameters and
+        applies any keyword arguments that override the configuration file
+        values, gets the remaining values from the configuration file, adds
+        default values for any parameters that are missing, and does any
+        required unit conversions. This function returns the fully populated,
+        validated configuration dictionary for all the other functions to use.
+    """
+    config = load_yaml_config(config_file)
+    # Coordinates of the target galaxy.
+    config['galaxy_coordinates'] =\
+        kwargs.get('galaxy_coordinates',
+                   config.get('galaxy_coordinates',
+                              '14h40m56.435s -60d53m48.3s'))
+    # The time of the observation.
+    config['observation_time'] = kwargs.get('observation_time',
+                                            config['observation_time'])
+    # The path to the data.
+    config['data_path'] = kwargs.get('data_path',
+                                     config['data_path'])
+    config['imager_filter'] = kwargs.get('imager_filter',
+                                         config['imager_filter'])
+    config['mass_to_light_ratio'] = kwargs.get('mass_to_light_ratio',
+                                               config['mass_to_light_ratio'])
+    config['abs_mag_sun'] = kwargs.get('abs_mag_sun',
+                                       config['abs_mag_sun'])
+    # The distance between the observer and the target galaxy. This is
+    # luminosity distance.
+    config['galaxy_distance'] = kwargs.get('galaxy_distance',
+                                           config['galaxy_distance'])
+    config['galaxy_distance'] = ensure_unit(config['galaxy_distance'], u.Mpc)
+    # The position of the target galaxy along the projection direction in the
+    # simulation box. Since it is coming from simulations, it is co-moving
+    # distance in Mpc.
+    config['target_galaxy_comoving_depth'] =\
+        kwargs.get('target_galaxy_comoving_depth',
+                   config['target_galaxy_comoving_depth'])
+    config['target_galaxy_comoving_depth'] = ensure_unit(
+        config['target_galaxy_comoving_depth'], u.Mpc)
+    config['viewing_axis'] = kwargs.get('viewing_axis',
+                                        config['viewing_axis'])
+    # The resolution of the simulation(parsec / pixel).
+    config['sim_pc_pixel'] = kwargs.get('sim_pc_pixel',
+                                        config['sim_pc_pixel'])
+    config['sim_pc_pixel'] = ensure_unit(config['sim_pc_pixel'],
+                                         u.pc / u.pixel)
+    config['particle_baryonic_mass_sim'] =\
+        kwargs.get('particle_baryonic_mass_sim',
+                   config['particle_baryonic_mass_sim'])
+    # To Do: The Hubble constant in the simulations is h, which is H / 100, it
+    # should be checked again that what constant is used in where and make
+    # proper conversion where it applies.
+    config['hubble_constant'] = kwargs.get('hubble_constant',
+                                           config['hubble_constant'])
+    config['hubble_constant'] = ensure_unit(config['hubble_constant'],
+                                            u.km / (u.Mpc * u.s))
+    if config['hubble_constant'].value < 1:
+        config['hubble_constant'] = config['hubble_constant'] * 100
+        config['hubble_constant'] = ensure_unit(config['hubble_constant'],
+                                                u.km / (u.Mpc * u.s))
+    # Density of matter(Dark + baryonic)
+    config['Omega_0'] = kwargs.get('Omega_0',
+                                   config['Omega_0'])
+    # Density of baryonic matter.
+    config['Omega_b'] = kwargs.get('Omega_b',
+                                   config['Omega_b'])
+    # Dark Energy density
+    config['Omega_Lambda'] = 1 - config['Omega_0']
+    # Temperature of the CMB at z=0.
+    config['T_CMB0'] = kwargs.get('T_CMB0',
+                                  config['T_CMB0'])
+    config['T_CMB0'] = ensure_unit(config['T_CMB0'],
+                                   u.K)
+    # Effective number of Neutrino species.
+    config['Neff'] = kwargs.get('Neff',
+                                config['Neff'])
+    # Mass of each neutrino species.
+    config['m_nu'] = kwargs.get('m_nu',
+                                config['m_nu'])
+    config['m_nu'] = ensure_unit(config['m_nu'],
+                                 u.eV)
+    # Redshift
+    config['redshift'] = kwargs.get('redshift',
+                                    config['redshift'])
+
+    return config
+
+
 def read_gadget(data_path):
     """
     Reads the raw output of simulations based on gadget code.
@@ -52,10 +161,7 @@ def read_gadget(data_path):
 
 def scale_light_by_distance(particle_positions,
                             particle_values,
-                            physical_distance=10 * u.Mpc,
-                            target_galaxy_comoving_depth=1 * u.Mpc,
-                            viewing_axis='z',
-                            config_location='config_example.yaml'):
+                            config):
     """
     Projecting 3D data to 2D data with respect to the depth of particles.
 
@@ -65,19 +171,8 @@ def scale_light_by_distance(particle_positions,
         The 3D position of particles, simulations output.
     particle_values : numpy.ndarray
         The luminosity of particles from simulations.
-    config_location : str, optional
-        The name (location) of the yaml file that contains initial
-        information, default `config_example.yaml`.
-    physical_distance : astropy.units.Quantity, optional
-        Distance between the observer and the target galaxy. It should be
-        luminosity (physical) distance. Any units are accepted.
-    target_galaxy_comoving_depth : astropy.units.Quantity, optional
-        The position of the target galaxy along the projection direction in
-        the simulation box. Since it is coming from simulations, it is
-        co-moving distance.
-    viewing_axis : string, optional
-        The projection direction. The user should choose among 'x', 'y', 'z',
-        'X', 'Y', 'Z'.
+    config : dict
+        A dictionary of configuration items.
 
     Returns
     -------
@@ -107,15 +202,14 @@ def scale_light_by_distance(particle_positions,
         viewing axis, which are co-moving distances, are small enough.
         Therefore, the function does not convert those positions to luminosity
         distance.
+
     """
     # Computing the length value that should be added to the positions of
     # particles in the viewing axis (projection axis) as correction.
-    physical_distance = ensure_unit(physical_distance, u.Mpc)
-    config = load_yaml_config(config_location)
     cosmo = create_cosmology(config)
     comoving_correction_length = \
-        compute_correction_length(physical_distance,
-                                  target_galaxy_comoving_depth,
+        compute_correction_length(config['galaxy_distance'],
+                                  config['target_galaxy_comoving_depth'],
                                   cosmo)
     # Computing the distance of all particles to the observer.
     # The particles positions in GNESIS Simulations are in Mpc units.
@@ -124,48 +218,41 @@ def scale_light_by_distance(particle_positions,
             particle_positions,
             particle_values,
             comoving_correction_length,
-            viewing_axis=viewing_axis)
+            viewing_axis=config['viewing_axis'])
     # Converting co-moving distances to luminosity distances.
     particle_positions = convert_to_lumonsity_distance(particle_positions,
-                                                       viewing_axis,
+                                                       config['viewing_axis'],
                                                        cosmo)
     # Applying corrections to the mass weights of particles.
     particle_values =\
         particle_values / (particle_positions[:, AxisNumber[
-                           viewing_axis]] / physical_distance) ** 2
+            config['viewing_axis']]] / config['galaxy_distance']) ** 2
 
     return particle_positions.value, particle_values
 
 
-def prepare_mocks(config_location='config_example.yaml',
-                  **kwargs):
+def prepare_mocks(config):
     """
     Creates a dictionary containing configuration data and a numpy.array of
     the simulation data.
 
     Parameters
     ----------
-    config_location : str, optional
-        The name (location) of the yaml file that contains initial
-        information, default `config_example.yaml`.
+    config : dict
+        A dictionary of configuration items.
 
     Returns
     -------
     mock_image_input: dict
     galaxy_sim_data_raw : numpy.array
         Prepared information for creating mock images and the simulation data.
-    """
-    # Loading configuration file:
-    config = load_yaml_config(config_location)
-    config['galaxy_coordinates'] =\
-        kwargs.get('galaxy_coordinates',
-                   config.get('galaxy_coordinates',
-                              '14h40m56.435s -60d53m48.3s'))
-    config['observation_time'] =\
-        kwargs.get('observation_time',
-                   config.get('observation_time',
-                              '2018-04-12T08:00'))
 
+    Deleted Parameters
+    ------------------
+    config_location : str, optional
+        The name (location) of the yaml file that contains initial
+        information, default `config_example.yaml`.
+    """
     # Creating the cosmology
     cosmo = create_cosmology(config)
 
@@ -213,7 +300,8 @@ def create_mock_galaxy_noiseless_image(config,
     Parameters
     ----------
     config : dict
-        a dictionary consist of configuration data for the function
+        The first output of the `mocks.prepare_mocks` function, a dictionary
+        consist of configuration data for the function.
     galaxy_sim_data_raw : numpy.ndarray
         The raw simulation data.
     imager : gunagala.imager.Imager
