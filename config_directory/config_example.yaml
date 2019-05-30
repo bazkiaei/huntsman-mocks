@@ -7,6 +7,9 @@ galaxy_coordinates: '14h40m56.435s -60d53m48.3s'
 # The date and time of the observation.
 observation_time: '2018-04-12T08:00'
 
+# Path for the output file of simulation data.
+sim_data_path: 'sim_data/test_g2_snap'
+
 # Path to the fits file of simulation data.
 data_path: 'sim_data/cl19.fits'
 

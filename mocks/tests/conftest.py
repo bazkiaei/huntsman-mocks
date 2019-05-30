@@ -6,6 +6,7 @@ import numpy as np
 from astropy.io import fits
 
 from mocks.utils import load_yaml_config
+from mocks import mocks
 
 
 @pytest.fixture(scope='module')
@@ -59,3 +60,8 @@ def configuration():
 def gadget_data_path(sim_data_dir):
     gadget_path = os.path.join(sim_data_dir, 'test_g2_snap')
     return gadget_path
+
+
+@pytest.fixture
+def config():
+    return mocks.parse_config()
