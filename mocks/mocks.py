@@ -62,8 +62,12 @@ def parse_config(config_file='config_example.yaml',
     config['observation_time'] = kwargs.get('observation_time',
                                             config['observation_time'])
     # The path to the data.
+    # This will be removed since we will not use fits files as input.
     config['data_path'] = kwargs.get('data_path',
                                      config['data_path'])
+    # The path to the simulation data.
+    config['sim_data_path'] = kwargs.get('sim_data_path',
+                                         config['sim_data_path'])
     config['imager_filter'] = kwargs.get('imager_filter',
                                          config['imager_filter'])
     config['mass_to_light_ratio'] = kwargs.get('mass_to_light_ratio',
@@ -132,25 +136,25 @@ def parse_config(config_file='config_example.yaml',
     return config
 
 
-def read_gadget(data_path):
+def read_gadget(config):
     """
     Reads the raw output of simulations based on gadget code.
 
     Parameters
     ----------
-    data_path : str
-        The path to the data.
+    config : dict
+        A dictionary of configuration items.
 
     Returns
     -------
-    particle_pos: pynbody.array.SimArray
-        The positions of the simulation particles (only stars at ghe mometnt).
-    particle_value: pynbody.array.SimArray
-        The mass of the simulation particles (only stars at ghe mometnt).
-    sim_properties: pynbody.simdict.SimDict
+    particle_pos : pynbody.array.SimArray
+        The positions of the simulation particles (only stars at the moment).
+    particle_value : pynbody.array.SimArray
+        The mass of the simulation particles (only stars at the moment).
+    sim_properties : pynbody.simdict.SimDict
         Contains cosmological information of the simulation.
     """
-    sim_data = pynbody.load(data_path)
+    sim_data = pynbody.load(config['sim_data_path'])
     particle_pos = sim_data.stars['pos'].in_units('Mpc')
     particle_pos = particle_pos.astype(np.float64)
     particle_value = sim_data.stars['mass'].in_units('Msol')

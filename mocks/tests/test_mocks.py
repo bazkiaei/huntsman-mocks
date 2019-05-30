@@ -38,6 +38,7 @@ def pixelated_psf_data(huntsman_sbig_dark_imager):
 
 def test_load_configuration(configuration):
     assert configuration['data_path'] == 'sim_data/cl19.fits'
+    assert configuration['sim_data_path'] == 'sim_data/test_g2_snap'
     assert configuration['galaxy_distance'] == 10.
     assert isinstance(configuration, dict)
 
@@ -48,6 +49,7 @@ def test_parse_config():
     assert config['galaxy_coordinates'] == '14h40m56.435s -60d53m48.3s'
     assert config['observation_time'] == '2018-04-12T08:00'
     assert config['data_path'] == 'sim_data/cl19.fits'
+    assert config['sim_data_path'] == 'sim_data/test_g2_snap'
     assert config['imager_filter'] == 'g'
     assert config['mass_to_light_ratio'] == {'g': 5, 'r': 5}
     assert config['abs_mag_sun'] == {'g': 5.11, 'r': 4.68, 'i': 4.53}
@@ -76,6 +78,7 @@ def test_parse_config_kwargs():
         galaxy_coordinates='00h00m00.0s 0d00m0.0s',
         observation_time='2019-04-12T08:00',
         data_path='sim_data/cl20.fits',
+        sim_data_path='sim_data/test_g5_snap',
         imager_filter='r',
         mass_to_light_ratio={'g': 5.5, 'r': 5.5},
         abs_mag_sun={'g': 5., 'r': 4., 'i': 4.5},
@@ -95,6 +98,7 @@ def test_parse_config_kwargs():
     assert config['galaxy_coordinates'] == '00h00m00.0s 0d00m0.0s'
     assert config['observation_time'] == '2019-04-12T08:00'
     assert config['data_path'] == 'sim_data/cl20.fits'
+    assert config['sim_data_path'] == 'sim_data/test_g5_snap'
     assert config['imager_filter'] == 'r'
     assert config['mass_to_light_ratio'] == {'g': 5.5, 'r': 5.5}
     assert config['abs_mag_sun'] == {'g': 5., 'r': 4., 'i': 4.5}
@@ -118,8 +122,8 @@ def test_parse_config_kwargs():
     assert config['m_nu'].unit == u.eV
 
 
-def test_read_gadget(gadget_data_path):
-    pos, mass, info = mocks.read_gadget(gadget_data_path)
+def test_read_gadget(config):
+    pos, mass, info = mocks.read_gadget(config)
     assert isinstance(pos, pynbody.array.SimArray)
     assert isinstance(mass, pynbody.array.SimArray)
     assert isinstance(info, pynbody.simdict.SimDict)
