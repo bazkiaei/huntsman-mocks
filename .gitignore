@@ -107,3 +107,6 @@ venv.bak/
 
 # local config file
 config.yaml
+
+# simulation data
+snapshot_201
