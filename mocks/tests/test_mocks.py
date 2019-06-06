@@ -51,8 +51,16 @@ def test_parse_config():
     assert config['data_path'] == 'sim_data/cl19.fits'
     assert config['sim_data_path'] == 'sim_data/test_g2_snap'
     assert config['imager_filter'] == 'g'
-    assert config['mass_to_light_ratio'] == {'g': 5, 'r': 5}
-    assert config['abs_mag_sun'] == {'g': 5.11, 'r': 4.68, 'i': 4.53}
+    assert config['mass_to_light_ratio']['g'].value == 5
+    assert config['mass_to_light_ratio']['g'].unit == u.M_sun / u.L_sun
+    assert config['mass_to_light_ratio']['r'].value == 5
+    assert config['mass_to_light_ratio']['r'].unit == u.M_sun / u.L_sun
+    assert config['abs_mag_sun']['g'].value == 5.11
+    assert config['abs_mag_sun']['g'].unit == u.M_sun / u.L_sun
+    assert config['abs_mag_sun']['r'].value == 4.68
+    assert config['abs_mag_sun']['r'].unit == u.M_sun / u.L_sun
+    assert config['abs_mag_sun']['i'].value == 4.53
+    assert config['abs_mag_sun']['i'].unit == u.M_sun / u.L_sun
     assert config['galaxy_distance'].value == 10.
     assert config['galaxy_distance'].unit == u.Mpc
     assert config['target_galaxy_comoving_depth'].value == 1.
@@ -100,8 +108,16 @@ def test_parse_config_kwargs():
     assert config['data_path'] == 'sim_data/cl20.fits'
     assert config['sim_data_path'] == 'sim_data/test_g5_snap'
     assert config['imager_filter'] == 'r'
-    assert config['mass_to_light_ratio'] == {'g': 5.5, 'r': 5.5}
-    assert config['abs_mag_sun'] == {'g': 5., 'r': 4., 'i': 4.5}
+    assert config['mass_to_light_ratio']['g'].value == 5.5
+    assert config['mass_to_light_ratio']['g'].unit == u.M_sun / u.L_sun
+    assert config['mass_to_light_ratio']['r'].value == 5.5
+    assert config['mass_to_light_ratio']['r'].unit == u.M_sun / u.L_sun
+    assert config['abs_mag_sun']['g'].value == 5.
+    assert config['abs_mag_sun']['g'].unit == u.M_sun / u.L_sun
+    assert config['abs_mag_sun']['r'].value == 4.
+    assert config['abs_mag_sun']['r'].unit == u.M_sun / u.L_sun
+    assert config['abs_mag_sun']['i'].value == 4.5
+    assert config['abs_mag_sun']['i'].unit == u.M_sun / u.L_sun
     assert config['galaxy_distance'].value == 8.
     assert config['galaxy_distance'].unit == u.Mpc
     assert config['target_galaxy_comoving_depth'].value == 2.
