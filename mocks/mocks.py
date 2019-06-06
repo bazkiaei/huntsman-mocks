@@ -72,8 +72,16 @@ def parse_config(config_file='config_example.yaml',
                                          config['imager_filter'])
     config['mass_to_light_ratio'] = kwargs.get('mass_to_light_ratio',
                                                config['mass_to_light_ratio'])
+    for i in config['mass_to_light_ratio']:
+        config['mass_to_light_ratio'][i] = ensure_unit(
+            config['mass_to_light_ratio'][i],
+            u.M_sun / u.L_sun)
     config['abs_mag_sun'] = kwargs.get('abs_mag_sun',
                                        config['abs_mag_sun'])
+    for i in config['abs_mag_sun']:
+        config['abs_mag_sun'][i] = ensure_unit(
+            config['abs_mag_sun'][i],
+            u.M_sun / u.L_sun)
     # The distance between the observer and the target galaxy. This is
     # luminosity distance.
     config['galaxy_distance'] = kwargs.get('galaxy_distance',
