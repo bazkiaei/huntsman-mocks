@@ -913,6 +913,31 @@ def create_cosmology(custom_cosmology_parameters,
     return cosmology
 
 
+def convert_mass_to_light(config,
+                          mass,
+                          band='g'):
+    """
+    Converts the mass of the galaxy to light.
+
+    Parameters
+    ----------
+    config : dic
+        A dictionary of configuration items.
+    mass : pynbody.array.SimArray
+        The mass of the simulation particles.
+    band : str, optional
+        The filter of the observation.
+
+    Returns
+    -------
+    astropy.units.Quantity
+        The light value of the simulation particles.
+    """
+    mass = ensure_unit(mass, u.M_sun)
+    mass = mass / config['mass_to_light_ratio'][band]
+    return mass
+
+
 class AxisNumber(enum.IntEnum):
 
     """
