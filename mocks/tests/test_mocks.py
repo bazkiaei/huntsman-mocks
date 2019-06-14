@@ -448,3 +448,14 @@ def test_create_cosmology(custom_cosmology_data):
     assert cosmo.H0.value == 70.
     assert cosmo.Tcmb0.value == 2.5
     assert cosmo.Om0 == 0.2865
+
+
+def test_convert_mass_to_light(config,
+                               mass_weights):
+    light = mocks.convert_mass_to_light(config,
+                                        mass_weights)
+    assert isinstance(light, np.ndarray)
+    assert light.shape == (5,)
+    assert light.unit == u.L_sun
+    assert light[0].to(u.L_sun).value == .2
+    assert light.sum().to(u.L_sun).value == 3.0
