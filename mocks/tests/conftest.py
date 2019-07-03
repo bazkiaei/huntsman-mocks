@@ -5,6 +5,8 @@ import numpy as np
 
 from astropy.io import fits
 
+import pynbody
+
 from mocks.utils import load_yaml_config
 from mocks import mocks
 
@@ -65,3 +67,13 @@ def gadget_data_path(sim_data_dir):
 @pytest.fixture
 def config():
     return mocks.parse_config()
+
+
+@pytest.fixture
+def sim_data(gadget_data_path):
+    return pynbody.load(gadget_data_path)
+
+
+@pytest.fixture
+def gadget_pos_data(sim_data):
+    return sim_data.stars['pos']
