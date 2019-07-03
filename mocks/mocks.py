@@ -155,7 +155,7 @@ def read_gadget(config):
 
     Returns
     -------
-    particle_pos : pynbody.array.SimArray
+    desired_pos : astropy.units.Quantity
         The positions of the simulation particles (only stars at the moment).
     particle_value : pynbody.array.SimArray
         The mass of the simulation particles (only stars at the moment).
@@ -163,12 +163,16 @@ def read_gadget(config):
         Contains cosmological information of the simulation.
     """
     sim_data = pynbody.load(config['sim_data_path'])
-    particle_pos = sim_data.stars['pos'].in_units('Mpc')
-    particle_pos = particle_pos.astype(np.float64)
+    particle_pos = sim_data.stars['pos']
+    # Converting the distances in viewing axis to co-moving distances and
+    # distances in viewing plane to proper distances.
+    desired_pos = convert_pynbody_to_desired_distance(config,
+                                                      particle_pos)
+    desired_pos = desired_pos.astype(np.float64)
     particle_value = sim_data.stars['mass'].in_units('Msol')
     particle_value = particle_value.astype(np.float64)
     sim_properties = sim_data.properties
-    return particle_pos, particle_value, sim_properties
+    return desired_pos, particle_value, sim_properties
 
 
 def scale_light_by_distance(particle_positions,
@@ -937,6 +941,48 @@ def convert_mass_to_light(config,
     mass = ensure_unit(mass, u.M_sun)
     mass = mass / config['mass_to_light_ratio'][band]
     return mass
+
+
+def convert_pynbody_to_desired_distance(configuration,
+                                        positions):
+    """
+    Converts the positions to co-moving distance (in viewing axis) and proper
+    distance in vertical direction of that.
+
+    Parameters
+    ----------
+    configuration : dict
+        A dictionary of configuration items.
+    positions : pynbody.array.SimArray
+        The positions of the particles.
+
+    Returns
+    -------
+    astropy.units.Quantity
+        The positions of particles in the desired format.
+
+    Notes
+    -----
+        Distances between simulations particles to the observer should be
+        luminosity distances while the transparent distances which the
+        observer measures should be proper distances. Pynbody provides data in
+        units of 'Mpc a / h'. To convert the data to co-moving distance, this
+        function converts it to the units of 'Mpc' for the viewing axis
+        direction. For the other two directions, the vertical plane, this
+        function converts the distances to the units of 'Mpc a' which is the
+        proper distance.
+    """
+    desired_pos = np.zeros(positions.shape)
+    for i in range(3):
+        # Viewing plane directions:
+        if AxisNumber[configuration['viewing_axis']] != i:
+            desired_pos[:, i] = positions[:, i].in_units('Mpc a')
+        # Viewing axis direction:
+        if AxisNumber[configuration['viewing_axis']] == i:
+            desired_pos[:, i] = positions[:, i].in_units('Mpc')
+    del(positions)
+    desired_pos = ensure_unit(desired_pos, u.Mpc)
+    return desired_pos
 
 
 class AxisNumber(enum.IntEnum):
