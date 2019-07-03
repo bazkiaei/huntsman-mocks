@@ -140,10 +140,10 @@ def test_parse_config_kwargs():
 
 def test_read_gadget(config):
     pos, mass, info = mocks.read_gadget(config)
-    assert isinstance(pos, pynbody.array.SimArray)
+    assert isinstance(pos, u.Quantity)
     assert isinstance(mass, pynbody.array.SimArray)
     assert isinstance(info, pynbody.simdict.SimDict)
-    assert pos.units == 'Mpc'
+    assert pos.unit == 'Mpc'
     assert mass.units == 'Msol'
     assert pos.shape == (39, 3)
     assert mass.shape == (39,)
@@ -460,3 +460,16 @@ def test_convert_mass_to_light(config,
     assert light.unit == u.L_sun
     assert light[0].to(u.L_sun).value == .2
     assert light.sum().to(u.L_sun).value == 3.0
+
+
+def test_convert_pynbody_to_desired_distance(config,
+                                             gadget_pos_data):
+    data = mocks.convert_pynbody_to_desired_distance(config,
+                                                     gadget_pos_data)
+    assert data.shape == (39, 3)
+    assert isinstance(data, u.Quantity)
+    assert data.unit == 'Mpc'
+    assert data.max().value == pytest.approx(1036.84033203125,
+                                             rel=1e-8)
+    assert data.min().value == pytest.approx(10.83410930633545,
+                                             rel=1e-8)
