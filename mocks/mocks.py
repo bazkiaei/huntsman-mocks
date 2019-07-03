@@ -573,19 +573,19 @@ def compute_total_mass(galaxy_sim_data_raw,
 
 
 def compute_apparent_mag(z,
-                         particle_light,
+                         sim_particle_luminosities,
                          config,
                          mag_units=u.ABmag,
                          cosmo=WMAP9):
     """
     This function computes the apparent magnitude of the target galaxy and its
-    environment with respect to the demanded distance.
+    environment with respect to a given distance.
 
     Parameters
     ----------
     z : float
         The redshift of the target galaxy at the demanded distance.
-    particle_light : astropy.units.Quantity
+    sim_particle_luminosities : astropy.units.Quantity
         The light of the simulation particles.
     config : dic
         A dictionary of configuration items.
@@ -598,18 +598,18 @@ def compute_apparent_mag(z,
         The apparent magnitude of the target and its environment.
 
     """
-    particle_light = ensure_unit(particle_light, u.L_sun)
+    sim_particle_luminosities = ensure_unit(sim_particle_luminosities, u.L_sun)
     # Total luminosity of the simulated galaxy in solar luminosities,
     # integrated over the demanded filter band.
-    total_lum_sim = particle_light.sum()
+    total_lum_sim = sim_particle_luminosities.sum()
     # Total absolute ABmag of the simulated galaxy in the demanded band.
-    absolute_ABmag =\
+    absolute_mag =\
         (config['abs_mag_sun'][config['imager_filter']].value -
             2.5 * np.log10(total_lum_sim.value)) * mag_units
     # Distance modulus at redshift `z`.
     distance_modulus = cosmo.distmod(z)
 
-    apparent_mag = absolute_ABmag + distance_modulus
+    apparent_mag = absolute_mag + distance_modulus
     return apparent_mag
 
 
