@@ -243,63 +243,63 @@ def scale_light_by_distance(particle_positions,
     return particle_positions.value, particle_values
 
 
-def prepare_mocks(config):
-    """
-    Creates a dictionary containing configuration data and a numpy.array of
-    the simulation data.
+# def prepare_mocks(config):
+#     """
+#     Creates a dictionary containing configuration data and a numpy.array of
+#     the simulation data.
 
-    Parameters
-    ----------
-    config : dict
-        A dictionary of configuration items.
+#     Parameters
+#     ----------
+#     config : dict
+#         A dictionary of configuration items.
 
-    Returns
-    -------
-    mock_image_input: dict
-    galaxy_sim_data_raw : numpy.array
-        Prepared information for creating mock images and the simulation data.
+#     Returns
+#     -------
+#     mock_image_input: dict
+#     galaxy_sim_data_raw : numpy.array
+#         Prepared information for creating mock images and the simulation data.
 
-    Deleted Parameters
-    ------------------
-    config_location : str, optional
-        The name (location) of the yaml file that contains initial
-        information, default `config_example.yaml`.
-    """
-    # Creating the cosmology
-    cosmo = create_cosmology(config)
+#     Deleted Parameters
+#     ------------------
+#     config_location : str, optional
+#         The name (location) of the yaml file that contains initial
+#         information, default `config_example.yaml`.
+#     """
+#     # Creating the cosmology
+#     cosmo = create_cosmology(config)
 
-    z = compute_redshift(config['galaxy_distance'],
-                         cosmo)
+#     z = compute_redshift(config['galaxy_distance'],
+#                          cosmo)
 
-    # Computing the pixel scale.
-    config['pixel_scale'] = compute_pixel_scale(z,
-                                                cosmo,
-                                                config['sim_pc_\
-pixel'])
-    # Reading the data.
-    with fits.open(config['data_path']) as sim_fits:
-        galaxy_sim_data_raw = sim_fits[0].data
-    # Computing the total mass of the galaxy:
-    galaxy_mass = compute_total_mass(galaxy_sim_data_raw,
-                                     config['particle_baryonic_mass_sim'],
-                                     mass_factor=1e5,
-                                     H=config['hubble_constant'])
+#     # Computing the pixel scale.
+#     config['pixel_scale'] = compute_pixel_scale(z,
+#                                                 cosmo,
+#                                                 config['sim_pc_\
+# pixel'])
+#     Reading the data.
+#     with fits.open(config['data_path']) as sim_fits:
+#         galaxy_sim_data_raw = sim_fits[0].data
+#     # Computing the total mass of the galaxy:
+#     galaxy_mass = compute_total_mass(galaxy_sim_data_raw,
+#                                      config['particle_baryonic_mass_sim'],
+#                                      mass_factor=1e5,
+#                                      H=config['hubble_constant'])
 
-    band = config['imager_filter']
-    # Mass to light ratio for demanded band (filter).
-    mass_to_light = config['mass_to_light_ratio'][band]
-    # Absolute magnitude of the Sun for the demanded band.
-    abs_mag_sun = config['abs_mag_sun'][band]
-    # Total apparent ABmag of the simulated galaxy in the demanded band.
-    total_apparent_ABmag_sim = compute_apparent_ABmag(z,
-                                                      galaxy_mass,
-                                                      mass_to_light,
-                                                      abs_mag_sun,
-                                                      cosmo)
+#     band = config['imager_filter']
+#     # Mass to light ratio for demanded band (filter).
+#     mass_to_light = config['mass_to_light_ratio'][band]
+#     # Absolute magnitude of the Sun for the demanded band.
+#     abs_mag_sun = config['abs_mag_sun'][band]
+#     # Total apparent ABmag of the simulated galaxy in the demanded band.
+#     total_apparent_ABmag_sim = compute_apparent_ABmag(z,
+#                                                       galaxy_mass,
+#                                                       mass_to_light,
+#                                                       abs_mag_sun,
+#                                                       cosmo)
 
-    config['total_mag'] = total_apparent_ABmag_sim
+#     config['total_mag'] = total_apparent_ABmag_sim
 
-    return config, galaxy_sim_data_raw
+#     return config, galaxy_sim_data_raw
 
 
 def create_mock_galaxy_noiseless_image(config,
@@ -572,43 +572,44 @@ def compute_total_mass(galaxy_sim_data_raw,
     return galaxy_mass
 
 
-def compute_apparent_ABmag(z,
-                           galaxy_mass,
-                           mass_to_light,
-                           abs_mag_sun,
-                           cosmo=WMAP9):
+def compute_apparent_mag(z,
+                         sim_particle_luminosities,
+                         config,
+                         mag_units=u.ABmag,
+                         cosmo=WMAP9):
     """
     This function computes the apparent magnitude of the target galaxy and its
-    environment with respect to the demanded distance.
+    environment with respect to a given distance.
 
     Parameters
     ----------
     z : float
         The redshift of the target galaxy at the demanded distance.
-    galaxy_mass : float
-        The total mass of the target galaxy and all masses in its environment
-        in solar mass units.
-    mass_to_light : float
-        The mass to light ratio of the target.
+    sim_particle_luminosities : astropy.units.Quantity
+        The light of the simulation particles.
+    config : dic
+        A dictionary of configuration items.
+    cosmo : astropy.cosmology.core.FlatLambdaCDM, optional
+        The main cosmology, default WMAP9.
 
     Returns
     -------
     float
         The apparent magnitude of the target and its environment.
+
     """
-    galaxy_mass = ensure_unit(galaxy_mass, u.M_sun)
-    mass_to_light = ensure_unit(mass_to_light, u.M_sun / u.L_sun)
-    abs_mag_sun = ensure_unit(abs_mag_sun, u.ABmag)
+    sim_particle_luminosities = ensure_unit(sim_particle_luminosities, u.L_sun)
     # Total luminosity of the simulated galaxy in solar luminosities,
-    # integrated over the filter band.
-    total_lum_sim = galaxy_mass / mass_to_light
+    # integrated over the demanded filter band.
+    total_lum_sim = sim_particle_luminosities.sum()
     # Total absolute ABmag of the simulated galaxy in the demanded band.
-    absolute_ABmag =\
-        (abs_mag_sun.value - 2.5 * np.log10(total_lum_sim.value)) * u.ABmag
+    absolute_mag =\
+        (config['abs_mag_sun'][config['imager_filter']].value -
+            2.5 * np.log10(total_lum_sim.value)) * mag_units
     # Distance modulus at redshift `z`.
     distance_modulus = cosmo.distmod(z)
 
-    apparent_mag = absolute_ABmag + distance_modulus
+    apparent_mag = absolute_mag + distance_modulus
     return apparent_mag
 
 
