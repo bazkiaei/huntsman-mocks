@@ -43,7 +43,7 @@ def test_init_mocks(config):
     assert isinstance(psf_data, np.ndarray)
     assert isinstance(cosmo, cosmology.core.FlatLambdaCDM)
     assert isinstance(redshift, np.float)
-    assert len(config) == 21
+    assert len(config) == 22
     assert config['pixel_scale'].value == pytest.approx(3.5227023119787146,
                                                         rel=1e-8)
     assert config['pixel_scale'].unit == u.arcsec / u.pixel
@@ -53,6 +53,21 @@ def test_init_mocks(config):
     assert cosmo.Om0 == 0.286
     assert redshift == pytest.approx(0.00230742076238339,
                                      rel=1e-8)
+
+
+def test_crop_simulation_data(particle_positions_3D,
+                              mass_weights):
+    pos, mass = mocks.crop_simulation_data(particle_positions_3D,
+                                           mass_weights,
+                                           z_range=[29, 42] * u.Mpc,
+                                           y_range=[29, 42] * u.Mpc,
+                                           x_range=[0, 71.] * u.Mpc)
+    assert pos.shape == (5, 3)
+    assert mass.shape == (5,)
+    assert pos.max() == 41.5
+    assert pos.min() == 29.5
+    assert mass.max() == 5.
+    assert mass.min() == 1.
 
 
 def test_load_configuration(configuration):
@@ -70,6 +85,7 @@ def test_parse_config():
     assert config['data_path'] == 'sim_data/cl19.fits'
     assert config['sim_data_path'] == 'sim_data/test_g2_snap'
     assert config['imager_filter'] == 'g'
+    assert config['imager'] == 'canon_sbig_dark'
     assert config['mass_to_light_ratio']['g'].value == 5
     assert config['mass_to_light_ratio']['g'].unit == u.M_sun / u.L_sun
     assert config['mass_to_light_ratio']['r'].value == 5
@@ -107,6 +123,7 @@ def test_parse_config_kwargs():
         data_path='sim_data/cl20.fits',
         sim_data_path='sim_data/test_g5_snap',
         imager_filter='r',
+        imager='canon',
         mass_to_light_ratio={'g': 5.5, 'r': 5.5},
         abs_mag_sun={'g': 5., 'r': 4., 'i': 4.5},
         galaxy_distance=8,
@@ -127,6 +144,7 @@ def test_parse_config_kwargs():
     assert config['data_path'] == 'sim_data/cl20.fits'
     assert config['sim_data_path'] == 'sim_data/test_g5_snap'
     assert config['imager_filter'] == 'r'
+    assert config['imager'] == 'canon'
     assert config['mass_to_light_ratio']['g'].value == 5.5
     assert config['mass_to_light_ratio']['g'].unit == u.M_sun / u.L_sun
     assert config['mass_to_light_ratio']['r'].value == 5.5

@@ -16,6 +16,8 @@ data_path: 'sim_data/cl19.fits'
 # This is where the user chooses the filter of the imager
 imager_filter: 'g'
 
+imager: 'canon_sbig_dark'
+
 # The mass to light ratio for different filters in (M_Sun / L_Sun).
 mass_to_light_ratio:
     g: 5
