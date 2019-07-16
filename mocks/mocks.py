@@ -21,6 +21,45 @@ import gunagala
 from gunagala.utils import ensure_unit
 
 from mocks.utils import load_yaml_config
+from mocks import utils
+
+
+def crop_simulation_data(particle_pos,
+                         particle_mass,
+                         z_range=[35.69, 35.80] * u.Mpc,
+                         y_range=[25.78, 25.89] * u.Mpc,
+                         x_range=[0, 71.] * u.Mpc):
+    """
+    Does some steps to prepare the data for the progress. This function will
+    not remain in its current shape and likely will be removed.
+
+    Parameters
+    ----------
+    particle_pos : numpy.ndarray
+        The 3D position of particles, simulations output.
+    particle_mass : numpy.ndarray
+        The mass of particles from simulations.
+    z_range : astropy.units.Quantity, optional
+        The range of the data in the z direction.
+    y_range : astropy.units.Quantity, optional
+        The range of the data in the y direction.
+    x_range : astropy.units.Quantity, optional
+        The range of the data in the x direction.
+
+    Returns
+    -------
+    numpy.ndarray
+        The prepared data for the main functions of the code.
+    """
+    pos, mass = utils.select_low_mass_star_particles(particle_pos,
+                                                     particle_mass)
+    pos = utils.position_data(pos)
+    pos, mass = cut_data(pos,
+                         mass,
+                         z_range,
+                         y_range,
+                         x_range)
+    return pos, mass
 
 
 def parse_config(config_file='config_example.yaml',
@@ -70,6 +109,8 @@ def parse_config(config_file='config_example.yaml',
                                          config['sim_data_path'])
     config['imager_filter'] = kwargs.get('imager_filter',
                                          config['imager_filter'])
+    config['imager'] = kwargs.get('imager',
+                                  config['imager'])
     config['mass_to_light_ratio'] = kwargs.get('mass_to_light_ratio',
                                                config['mass_to_light_ratio'])
     for i in config['mass_to_light_ratio']:
