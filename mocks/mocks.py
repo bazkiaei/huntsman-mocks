@@ -93,9 +93,7 @@ def init_mocks(config):
                                                 cosmo,
                                                 config['sim_pc_pixel'])
     imagers = gunagala.imager.create_imagers()
-    # In the following line the term 'canon_sbig_dark' will be changed to
-    # 'imager'. It is in progress in another PR so I prefer to wait for that.
-    huntsman = imagers['canon_sbig_dark']
+    huntsman = imagers[config['imager']]
     psf_data = huntsman.psf.pixellated()
     return config, huntsman, psf_data, cosmo, redshift
 
