@@ -563,7 +563,8 @@ def mock_image_stack(input_image,
     n_exposures : int, optional
         Number of exposures of the imager.
     exptime : TYPE, optional
-        The exposures time.
+        The exposures time. You can provide a float assumed to be in seconds
+        or a astropy.units in units of time.
 
     Returns
     -------
@@ -585,6 +586,8 @@ def mock_image_stack(input_image,
 
     # measuring the time for stacking images.
     start_time = time.time()
+    # Making sure the exposure time has the correct units.
+    exptime = ensure_unit(exptime, u.s)
 
     # check the input data to be CCDData type and convert to it if it is not.
     try:
