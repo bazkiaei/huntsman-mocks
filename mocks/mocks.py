@@ -82,7 +82,7 @@ def init_mocks(config):
     -------
     config : dict
         A dictionary of configuration items.
-    huntsman : gunagala.imager.Imager
+    telescope : gunagala.imager.Imager
         Imager instance from gunagala.
     psf_data : numpy.ndarray
         Imager's psf data.
@@ -99,9 +99,9 @@ def init_mocks(config):
                                                 cosmo,
                                                 config['sim_pc_pixel'])
     imagers = gunagala.imager.create_imagers()
-    huntsman = imagers[config['imager']]
-    psf_data = huntsman.psf.pixellated()
-    return config, huntsman, psf_data, cosmo, redshift
+    telescope = imagers[config['imager']]
+    psf_data = telescope.psf.pixellated()
+    return config, telescope, psf_data, cosmo, redshift
 
 
 def create_logger():
