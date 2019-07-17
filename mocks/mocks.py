@@ -4,6 +4,8 @@ import time
 
 import enum
 
+import sys
+
 import astropy.units as u
 from astropy.cosmology import WMAP9
 from astropy.cosmology import FlatLambdaCDM
@@ -14,6 +16,10 @@ from astropy import cosmology
 from astropy.io import fits
 
 import ccdproc
+
+import logging
+
+import logbook
 
 import pynbody
 
@@ -62,7 +68,36 @@ def crop_simulation_data(particle_pos,
     return pos, mass
 
 
+def create_logger():
+    """
+    Creates logger based on logging module.
+
+    Returns
+    -------
+    logging.Logger
+        The logger to use for logging system.
+    """
+    logger = logging.getLogger(__name__)
+    logger.setLevel(logging.DEBUG)
+    logger.addHandler(logging.StreamHandler())
+    return logger
+
+
+def create_logbook():
+    """
+    Creates logger based on logbook module.
+
+    Returns
+    -------
+    logbook.base.Logger
+        The logger to use for logging system.
+    """
+    logbook.StreamHandler(sys.stdout).push_application()
+    return logbook.Logger('logbook')
+
+
 def parse_config(config_file='config_example.yaml',
+                 verbose=True,
                  **kwargs):
     """
     Parses the configuration.
@@ -91,6 +126,9 @@ def parse_config(config_file='config_example.yaml',
         required unit conversions. This function returns the fully populated,
         validated configuration dictionary for all the other functions to use.
     """
+    logger = create_logbook()
+
+    logger.info('Parsing configuration')
     config = load_yaml_config(config_file)
     # Coordinates of the target galaxy.
     config['galaxy_coordinates'] =\
@@ -182,6 +220,7 @@ def parse_config(config_file='config_example.yaml',
     config['redshift'] = kwargs.get('redshift',
                                     config['redshift'])
 
+    logger.info('Parsing configuration completed')
     return config
 
 
@@ -506,6 +545,8 @@ def mock_image_stack(input_image,
         If the units of the input_image is not compatible this erroe will
         raise.
     """
+    logger = create_logbook()
+
     # measuring the time for stacking images.
     start_time = time.time()
 
@@ -517,18 +558,24 @@ def mock_image_stack(input_image,
         # Try again with manually set units.
         # This will work for numpy.array or similar.
         input_image = CCDData(input_image, unit="electron / (pixel * second)")
+        logger.info('The input image data converted to CCDData.')
 
     try:
+        logger.info('Creating noisy images started.')
         real_images = [imager.make_image_real(input_image, exptime)
                        for i in range(n_exposures)]
+        logger.info('Creating noisy images finished.')
     except u.UnitConversionError as error:
         message = "Input data units must be e/pixel/s or compatible. Got unit\
 conversion error: {}".format(error)
         raise u.UnitsError(message)
 
+    logger.info('Combining noisy images.')
     real_images = ccdproc.Combiner(real_images)
 
+    logger.info('Averaging combined images.')
     stacked_image = real_images.average_combine()
+    logger.info('The stacked image is ready.')
 
     # reporting how long the stacking took.
     print("Stacking ", n_exposures,
