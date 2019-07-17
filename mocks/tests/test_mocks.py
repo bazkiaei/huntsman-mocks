@@ -10,6 +10,10 @@ from gunagala import imager
 
 import pynbody
 
+import logging
+
+import logbook
+
 from mocks import mocks
 
 
@@ -34,6 +38,16 @@ def pixelated_psf_data(huntsman_sbig_dark_imager):
     psf_data = huntsman_sbig_dark_imager.psf.pixellated(size=(5, 5),
                                                         offsets=(0, 0))
     return psf_data
+
+
+def test_create_logger():
+    logger = mocks.create_logger()
+    assert isinstance(logger, logging.Logger)
+
+
+def test_create_logbook():
+    logger = mocks.create_logbook()
+    assert isinstance(logger, logbook.base.Logger)
 
 
 def test_crop_simulation_data(particle_positions_3D,
