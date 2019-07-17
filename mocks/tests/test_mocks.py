@@ -10,6 +10,10 @@ from gunagala import imager
 
 import pynbody
 
+import logging
+
+import logbook
+
 from mocks import mocks
 
 
@@ -53,6 +57,16 @@ def test_init_mocks(config):
     assert cosmo.Om0 == 0.286
     assert redshift == pytest.approx(0.00230742076238339,
                                      rel=1e-8)
+
+
+def test_create_logger():
+    logger = mocks.create_logger()
+    assert isinstance(logger, logging.Logger)
+
+
+def test_create_logbook():
+    logger = mocks.create_logbook()
+    assert isinstance(logger, logbook.base.Logger)
 
 
 def test_crop_simulation_data(particle_positions_3D,
