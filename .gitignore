@@ -110,3 +110,9 @@ config.yaml
 
 # simulation data
 snapshot_201
+
+# local sample jupyter notebook
+examples/notebooks/creating simple outflow.ipynb
+
+# local data
+examples/notebooks/sim_data/snapshot_201
