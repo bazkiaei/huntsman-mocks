@@ -107,3 +107,9 @@ venv.bak/
 
 # local config file
 config.yaml
+
+# local sample jupyter notebook
+examples/notebooks/creating simple outflow.ipynb
+
+# local data
+examples/notebooks/sim_data/snapshot_201
