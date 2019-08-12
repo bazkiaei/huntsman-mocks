@@ -70,7 +70,7 @@ def crop_simulation_data(particle_pos,
 
 def init_mocks(config):
     """
-    Creates some initials for the code. This function will be converted to
+    Initialises a mock instance. This function will be converted to
     the __init__ when the code uses class.
 
     Parameters
@@ -88,7 +88,7 @@ def init_mocks(config):
         Imager's psf data.
     cosmo : astropy.cosmology.core.FlatLambdaCDM
         The main cosmology that will be used by the code.
-    redshift : numpy.float
+    redshift : float
         The redshift of the galaxy computed with respect to the distance of
         the observer to the galaxy.
     """
@@ -100,8 +100,7 @@ def init_mocks(config):
                                                 config['sim_pc_pixel'])
     imagers = gunagala.imager.create_imagers()
     telescope = imagers[config['imager']]
-    psf_data = telescope.psf.pixellated()
-    return config, telescope, psf_data, cosmo, redshift
+    return config, telescope, cosmo, redshift
 
 
 def create_logger():
