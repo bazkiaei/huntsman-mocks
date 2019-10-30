@@ -40,6 +40,21 @@ def pixelated_psf_data(huntsman_sbig_dark_imager):
     return psf_data
 
 
+def test_init_mocks(config):
+    config, huntsman, cosmo, redshift = mocks.init_mocks(config)
+    assert isinstance(config, dict)
+    assert isinstance(huntsman, imager.Imager)
+    assert isinstance(cosmo, cosmology.core.FlatLambdaCDM)
+    assert isinstance(redshift, np.float)
+    assert len(config) == 22
+    assert config['pixel_scale'].value == pytest.approx(3.5227023119787146,
+                                                        rel=1e-8)
+    assert config['pixel_scale'].unit == u.arcsec / u.pixel
+    assert cosmo.Om0 == 0.286
+    assert redshift == pytest.approx(0.00230742076238339,
+                                     rel=1e-8)
+
+
 def test_create_logger():
     logger = mocks.create_logger()
     assert isinstance(logger, logging.Logger)
